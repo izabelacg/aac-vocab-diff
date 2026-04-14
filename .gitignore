@@ -1,0 +1,37 @@
+# TouchChat vocabulary files contain personal/sensitive information
+# (family photos, names, addresses). Never commit these.
+*.ce
+!diff/testdata/WordPower60 Basic SS_2026-04-08.ce
+!diff/testdata/WordPower60 Basic SS_Custom_2026-04-08.ce
+
+# Generated output — not part of the source
+*.html
+
+# But keep the embedded template that the Go binary needs at build time
+!report/templates/report.html
+!server/templates/upload.html
+
+# Personal notes
+vocab-description.md
+*.pdf
+tmp/
+
+# Go build output
+bin/
+
+# macOS metadata
+.DS_Store
+
+# CI secrets — never commit real credentials
+ci/secrets.yaml
+
+# Reference snapshots and private notes — not part of the module
+_plans/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+requirements-dev.txt

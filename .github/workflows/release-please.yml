@@ -1,0 +1,23 @@
+# Opens/updates a release PR from Conventional Commits; merging it tags a release
+# and updates CHANGELOG.md. Deploy to the Pi stays a separate manual step (make / Concourse).
+
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    # Composite action still targets Node 20; opt into Node 24 per GitHub’s deprecation timeline.
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: googleapis/release-please-action@v4

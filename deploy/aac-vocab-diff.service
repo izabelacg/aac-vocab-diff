@@ -1,0 +1,23 @@
+[Unit]
+Description=AAC Vocab Diff – local web UI
+Documentation=https://github.com/izabelacg/aac-vocab-diff
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+
+# Update --addr if you want a different port.
+ExecStart=/usr/local/bin/aac-vocab-diff serve --addr :8888 --analytics-log /var/log/aac-vocab-diff/analytics.log
+Restart=on-failure
+RestartSec=5s
+
+# Security hardening: the server processes files in /tmp and needs no
+# access to the rest of the filesystem.
+ReadOnlyPaths=/
+ReadWritePaths=/tmp /var/log/aac-vocab-diff
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

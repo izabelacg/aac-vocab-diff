@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Vocab Diff</title>
+        <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; color: #222; background: #f5f5f7;
+      min-height: 100vh; padding: 24px;
+      display: flex; align-items: flex-start; justify-content: center;
+    }
+    .card {
+      background: #fff; border-radius: 12px; padding: 32px 36px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.10); width: 100%; max-width: 460px;
+      margin-top: 48px;
+    }
+    h1 { font-size: 20px; margin-bottom: 6px; }
+    .subtitle {
+      color: #666; font-size: 13px; line-height: 1.6; margin-bottom: 28px;
+    }
+    .subtitle code {
+      background: #f0f0f5; border-radius: 4px; padding: 1px 5px;
+      font-size: 12px; color: #444;
+    }
+    .field { margin-bottom: 20px; }
+    label {
+      display: block; font-weight: 600; font-size: 13px; color: #333;
+      margin-bottom: 6px;
+    }
+    .file-wrap {
+      border: 1.5px solid #d0d7de; border-radius: 8px;
+      background: #f6f8fa; overflow: hidden;
+      transition: border-color .15s;
+    }
+    .file-wrap:focus-within { border-color: #0969da; background: #fff; }
+    input[type=file] {
+      display: block; width: 100%; padding: 10px 12px;
+      font-size: 13px; color: #444;
+      border: none; background: transparent; cursor: pointer;
+    }
+    input[type=file]:focus { outline: none; }
+    button[type=submit] {
+      width: 100%; padding: 12px; margin-top: 4px;
+      background: #0969da; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: background .15s;
+    }
+    button[type=submit]:hover  { background: #0860ca; }
+    button[type=submit]:active { background: #0757b7; }
+    .privacy {
+      margin-top: 24px; padding-top: 18px; border-top: 1px solid #f0f0f0;
+      font-size: 12px; color: #888; line-height: 1.6;
+    }
+    .privacy strong { color: #555; font-weight: 600; }
+    .how-it-works {
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid #f0f0f0;
+    }
+    .how-it-works summary {
+      cursor: pointer; font-weight: 600; font-size: 13px; color: #0969da;
+      list-style: none;
+    }
+    .how-it-works summary::-webkit-details-marker { display: none; }
+    .how-it-works summary::before { content: "▸  "; }
+    details[open] > summary::before { content: "▾  "; }
+    .how-body { margin-top: 10px; font-size: 13px; color: #444; line-height: 1.7; }
+    .how-body ul { padding-left: 20px; margin: 4px 0 10px; }
+    .how-body p { margin-bottom: 6px; }
+    .how-body a { color: #0969da; }
+    .export-help { display: block; margin-top: 6px; font-size: 12px; color: #0969da; }
+    footer {
+      margin-top: 20px; padding-top: 14px; border-top: 1px solid #f0f0f0;
+      font-size: 11px; color: #aaa; text-align: center; line-height: 1.6;
+    }
+    footer a { color: #aaa; }
+    footer a:hover { color: #555; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+      border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+    button[type=submit].loading { background: #6ea8dc; cursor: not-allowed; pointer-events: none; }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>Vocab Diff</h1>
+            <p class="subtitle">
+                Compare two <code>.ce</code> vocabulary snapshots to see exactly what
+                changed — pages added or removed, buttons added, removed, or modified.
+                <a class="export-help"
+                   href="https://touchchatapp.com/support/export-import-a-vocab-using-a-usb-drive"
+                   target="_blank"
+                   rel="noopener">How do I get my .ce file?</a>
+            </p>
+            <form method="POST" action="/diff" enctype="multipart/form-data">
+                <div class="field">
+                    <label for="old">Older file</label>
+                    <div class="file-wrap">
+                        <input type="file" id="old" name="old" accept=".ce" required>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="new">Newer file</label>
+                    <div class="file-wrap">
+                        <input type="file" id="new" name="new" accept=".ce" required>
+                    </div>
+                </div>
+                <button type="submit" id="submit-btn">Compare →</button>
+            </form>
+            <p class="privacy">
+                <strong>Privacy:</strong> Your files are processed on this server only — never
+                forwarded to any third party for processing. They are saved to a temporary
+                location on the server for the duration of the comparison and deleted
+                immediately after. If you are accessing this via a public URL, your upload
+                travels encrypted over the internet to the server; it is not stored anywhere
+                along the way.
+            </p>
+            <details class="how-it-works">
+                <summary>What does this compare?</summary>
+                <div class="how-body">
+                    <p>
+                        <strong>It compares:</strong>
+                    </p>
+                    <ul>
+                        <li>Pages added or removed</li>
+                        <li>Buttons added or removed</li>
+                        <li>Changes to: label, spoken message, pronunciation, visibility, and navigation actions</li>
+                    </ul>
+                    <p>
+                        <strong>It does not compare:</strong>
+                    </p>
+                    <ul>
+                        <li>Button position or layout (where on the grid a button sits)</li>
+                        <li>Button images (only text fields are compared)</li>
+                    </ul>
+                    <p>
+                        <strong>How buttons are identified:</strong> by label and spoken message — not position.
+                        If two buttons on the same page share the same label and message and one changes, the tool
+                        shows "one removed, one added" rather than "one modified".
+                    </p>
+                    <p>
+                        Tested with <strong>TouchChat WordPower 60 Basic SS</strong>. Should work with other
+                        vocabulary types — if yours gives an error, please
+                        <a href="https://docs.google.com/forms/d/11YlQYQ_YzGSYQaFJxZFT8TbPX6vj2AvW1ow5ai4CDOU/viewform"
+                           target="_blank"
+                           rel="noopener">send feedback</a>.
+                    </p>
+                    <p>
+                        This server counts page visits and successful comparisons to understand
+                        usage. No personal data, filenames, or file contents are recorded.
+                    </p>
+                    <p>
+                        <strong>Need to export your vocabulary?</strong> In TouchChat: tap
+                        <em>Vocab → Menu → Import/Export Vocab → Export and Share</em>, then save the file
+                        to your Files app. Full instructions on
+                        <a href="https://touchchatapp.com/support/export-import-a-vocab-using-a-usb-drive"
+                           target="_blank"
+                           rel="noopener">TouchChat's support page</a>.
+                    </p>
+                </div>
+            </details>
+            <footer>
+                Not affiliated with PRC-Saltillo or TouchChat. &middot;
+                <a href="https://docs.google.com/forms/d/11YlQYQ_YzGSYQaFJxZFT8TbPX6vj2AvW1ow5ai4CDOU/viewform"
+                   target="_blank"
+                   rel="noopener">Send feedback</a>
+                <p class="build-info">Build {{.Version}} · {{.Commit}}{{- if ne .BuildTime "unknown" }} · {{.BuildTime}}{{- end }}</p>
+            </footer>
+        </div>
+        <script>
+  document.querySelector('form').addEventListener('submit', function (e) {
+    var btn = document.getElementById('submit-btn');
+    btn.classList.add('loading');
+    btn.innerHTML = '<span class="spinner"></span>Comparing\u2026';
+    // Safari navigates before painting the DOM change; defer submission by
+    // two animation frames so the spinner is visible before the page leaves.
+    var form = this;
+    e.preventDefault();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { form.submit(); });
+    });
+  });
+        </script>
+    </body>
+</html>
