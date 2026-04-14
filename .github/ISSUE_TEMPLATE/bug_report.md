@@ -5,7 +5,7 @@ labels: bug
 ---
 
 **What vocabulary type were you using?**
-e.g. TouchChat WordPower 60 Basic SS, WordPower 42, etc.
+e.g. TouchChat™ WordPower 60 Basic SS, WordPower 42, etc.
 
 **What happened?**
 Describe what went wrong — an error message, a missing result, something that looks wrong in the report.

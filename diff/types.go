@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Button holds every diffable field of a single TouchChat button.
+// Button holds every diffable field of a single TouchChat™ button.
 type Button struct {
 	Label         string
 	Message       string // empty string means the device speaks the label text

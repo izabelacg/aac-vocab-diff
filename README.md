@@ -1,6 +1,6 @@
 # Vocab Diff
 
-A tool for parents and caregivers of AAC users to compare two TouchChat `.ce`
+A tool for parents and caregivers of AAC users to compare two TouchChat™ `.ce`
 vocabulary files and see exactly what changed — pages added or removed, buttons
 added, removed, or modified — without having to manually browse every page in
 the app.
@@ -98,14 +98,14 @@ Changes are grouped into three categories:
 - Button position, colour, and images are not compared.
 - Empty placeholder cells (no label, no message) are ignored.
 - `.ce` files are never modified.
-- Tested with **TouchChat WordPower 60 Basic SS**. Other vocabulary types
+- Tested with **TouchChat™ WordPower 60 Basic SS**. Other vocabulary types
   should work — if yours produces an error, please
   [send feedback](https://docs.google.com/forms/d/11YlQYQ_YzGSYQaFJxZFT8TbPX6vj2AvW1ow5ai4CDOU/viewform).
 
 ## Disclaimer
 
 This project is not affiliated with, endorsed by, or associated with Saltillo
-Corporation or PRC-Saltillo in any way. TouchChat and WordPower are trademarks
+Corporation or PRC-Saltillo in any way. TouchChat™ and WordPower™ are trademarks
 of their respective owners. Users are responsible for ensuring their use of
 this tool complies with their own software licence agreements.
 
