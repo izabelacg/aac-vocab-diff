@@ -291,6 +291,16 @@ func TestServeUploadForm_ContainsFeedbackFormLink(t *testing.T) {
 	}
 }
 
+func TestServeUploadForm_ContainsRepoLink(t *testing.T) {
+	w, r := get("/")
+	server.New().ServeHTTP(w, r)
+
+	const repo = "https://github.com/izabelacg/aac-vocab-diff"
+	if !strings.Contains(w.Body.String(), repo) {
+		t.Error("upload form missing GitHub repository link")
+	}
+}
+
 func TestServeUploadForm_ContainsFooter(t *testing.T) {
 	w, r := get("/")
 	server.New().ServeHTTP(w, r)
@@ -342,6 +352,19 @@ func TestServeDiff_ReportContainsFeedbackLink(t *testing.T) {
 	const formPath = "docs.google.com/forms/d/11YlQYQ_YzGSYQaFJxZFT8TbPX6vj2AvW1ow5ai4CDOU"
 	if !strings.Contains(w.Body.String(), formPath) {
 		t.Error("diff report missing feedback form link")
+	}
+}
+
+func TestServeDiff_ReportContainsRepoLink(t *testing.T) {
+	body, ct := buildMultipart(t, fixtureOld, fixtureNew)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/diff", body)
+	r.Header.Set("Content-Type", ct)
+	server.New().ServeHTTP(w, r)
+
+	const repo = "https://github.com/izabelacg/aac-vocab-diff"
+	if !strings.Contains(w.Body.String(), repo) {
+		t.Error("diff report missing GitHub repository link")
 	}
 }
 
