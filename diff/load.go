@@ -181,6 +181,20 @@ func loadButtons(db *sql.DB) (ButtonMap, error) {
 	return bm, bRows.Err()
 }
 
+func navigateDestination(targetName, value, vocab string) string {
+	dest := targetName
+	if dest == "" {
+		dest = value
+	}
+	if dest == "" {
+		dest = "?"
+	}
+	if vocab != "" {
+		dest = vocab + "/" + dest // cross-vocab: "VocabName/PageName"
+	}
+	return dest
+}
+
 // buildActionSummary collapses raw SQL rows for one button into human-readable action strings.
 func buildActionSummary(rows []actionRow) []string {
 	// Group by rank — each rank is one action; multiple rows = multiple params.
@@ -215,16 +229,7 @@ func buildActionSummary(rows []actionRow) []string {
 		switch e.code {
 		case 9: // navigate to page — key 0 = target RID, key 1 = vocab name
 			p0 := e.params[0]
-			dest := p0.targetName.String
-			if dest == "" {
-				dest = p0.value.String
-			}
-			if dest == "" {
-				dest = "?"
-			}
-			if vocab := e.params[1].value.String; vocab != "" {
-				dest = vocab + "/" + dest
-			}
+			dest := navigateDestination(p0.targetName.String, p0.value.String, e.params[1].value.String)
 			parts = append(parts, fmt.Sprintf("%s: %q", lbl, dest))
 		case 4: // play sound — key 0 = sound resource
 			s := e.params[0].targetName.String
