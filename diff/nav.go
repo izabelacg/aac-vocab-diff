@@ -35,11 +35,34 @@ JOIN button_box_instances bbi ON bbi.page_id       = p.id
 JOIN button_boxes bb          ON bb.id             = bbi.button_box_id
 JOIN button_box_cells bbc     ON bbc.button_box_id = bb.id
 JOIN buttons b                ON b.resource_id     = bbc.resource_id
-JOIN actions a                ON a.resource_id     = bbc.resource_id AND a.code = 9
+JOIN actions a                ON a.resource_id     = bbc.resource_id AND a.code IN (8, 9, 73)
 LEFT JOIN action_data ad0     ON ad0.action_id = a.id AND ad0.key = 0
 LEFT JOIN action_data ad1     ON ad1.action_id = a.id AND ad1.key = 1
 LEFT JOIN resources r_target  ON r_target.rid = ad0.value
-ORDER BY r_page.name, b.label
+
+UNION ALL
+
+-- buttons nested inside a button_set cell (type-5 resource in button_box_cells)
+SELECT
+    r_page.name                  AS source,
+    COALESCE(b.label, '')        AS btn_label,
+    COALESCE(r_target.name, '')  AS target_name,
+    COALESCE(ad0.value, '')      AS target_value,
+    COALESCE(ad1.value, '')      AS vocab
+FROM resources r_page
+JOIN pages p                  ON p.resource_id     = r_page.id
+JOIN button_box_instances bbi ON bbi.page_id       = p.id
+JOIN button_boxes bb          ON bb.id             = bbi.button_box_id
+JOIN button_box_cells bbc     ON bbc.button_box_id = bb.id
+JOIN button_sets bs           ON bs.resource_id    = bbc.resource_id
+JOIN button_set_modifiers bsm ON bsm.button_set_id = bs.id
+JOIN buttons b                ON b.id              = bsm.button_id
+JOIN actions a                ON a.resource_id     = b.resource_id AND a.code IN (8, 9, 73)
+LEFT JOIN action_data ad0     ON ad0.action_id = a.id AND ad0.key = 0
+LEFT JOIN action_data ad1     ON ad1.action_id = a.id AND ad1.key = 1
+LEFT JOIN resources r_target  ON r_target.rid = ad0.value
+
+ORDER BY source, btn_label
 `
 
 func LoadPageNavGraph(dbPath string) (PageNavGraph, error) {

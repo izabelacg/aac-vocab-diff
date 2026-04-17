@@ -40,6 +40,9 @@ func newTestDB(t *testing.T) *sql.DB {
 			resource_id INTEGER, rank INTEGER, code INTEGER);
 		CREATE TABLE action_data (id INTEGER PRIMARY KEY,
 			action_id INTEGER, key INTEGER, value TEXT);
+		CREATE TABLE button_sets (id INTEGER PRIMARY KEY, resource_id INTEGER);
+		CREATE TABLE button_set_modifiers (id INTEGER PRIMARY KEY,
+			button_set_id INTEGER, button_id INTEGER, modifier INTEGER);
 	`)
 	// Page: id=1, name="Home" (type 7 = page)
 	mustExec(t, db, `INSERT INTO resources VALUES (1,'{rid-home}','Home',7)`)

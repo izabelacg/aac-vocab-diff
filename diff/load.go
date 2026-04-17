@@ -40,7 +40,7 @@ var actionLabels = map[int]string{
 	4:  "play sound",
 	5:  "record",
 	6:  "navigate back",
-	8:  "show image",
+	8:  "visit / navigate",
 	9:  "navigate to page",
 	10: "speak (auto)",
 	16: "punctuation",
@@ -62,7 +62,7 @@ var actionLabels = map[int]string{
 	68: "share text",
 	70: "open app",
 	71: "word form",
-	73: "pronoun",
+	73: "visit / navigate",
 	74: "find word",
 	77: "clear all",
 	82: "send to display",
@@ -189,10 +189,19 @@ func navigateDestination(targetName, value, vocab string) string {
 	if dest == "" {
 		dest = "?"
 	}
-	if vocab != "" {
+	if vocab != "" && !isNumeric(vocab) {
 		dest = vocab + "/" + dest // cross-vocab: "VocabName/PageName"
 	}
 	return dest
+}
+
+func isNumeric(s string) bool {
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return len(s) > 0
 }
 
 // buildActionSummary collapses raw SQL rows for one button into human-readable action strings.
