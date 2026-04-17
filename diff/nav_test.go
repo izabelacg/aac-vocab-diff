@@ -95,7 +95,7 @@ func TestLoadPageNavGraph_DeduplicatesSameDestTwoButtons(t *testing.T) {
 func TestAllShortestPathsFromHome_RootPageItself(t *testing.T) {
 	g := PageNavGraph{"Home": {{Label: "Sports", Dest: "sports-list"}}}
 	pages := PageSet{"Home": {}, "sports-list": {}}
-	paths := AllShortestPathsFromHome(g, pages)
+	paths := AllShortestPathsFromHome(g, pages, "Home")
 	if got := paths["Home"]; got != "Home" {
 		t.Errorf("Home path: got %q, want %q", got, "Home")
 	}
@@ -106,7 +106,7 @@ func TestAllShortestPathsFromHome_OneHop(t *testing.T) {
 	// Breadcrumb uses the button label, not the destination page name.
 	g := PageNavGraph{"Home": {{Label: "Sports", Dest: "sports-list"}}}
 	pages := PageSet{"Home": {}, "sports-list": {}}
-	paths := AllShortestPathsFromHome(g, pages)
+	paths := AllShortestPathsFromHome(g, pages, "Home")
 	want := "Home → Sports"
 	if got := paths["sports-list"]; got != want {
 		t.Errorf("sports-list path: got %q, want %q", got, want)
@@ -119,7 +119,7 @@ func TestAllShortestPathsFromHome_TwoHops(t *testing.T) {
 		"sports-list": {{Label: "Indoor", Dest: "indoor-list"}},
 	}
 	pages := PageSet{"Home": {}, "sports-list": {}, "indoor-list": {}}
-	paths := AllShortestPathsFromHome(g, pages)
+	paths := AllShortestPathsFromHome(g, pages, "Home")
 	want := "Home → Sports → Indoor"
 	if got := paths["indoor-list"]; got != want {
 		t.Errorf("indoor-list path: got %q, want %q", got, want)
@@ -138,7 +138,7 @@ func TestAllShortestPathsFromHome_ShortestPathWins(t *testing.T) {
 		"via-b": {{Label: "Go", Dest: "target"}},
 	}
 	pages := PageSet{"Home": {}, "via-a": {}, "via-b": {}, "target": {}}
-	paths := AllShortestPathsFromHome(g, pages)
+	paths := AllShortestPathsFromHome(g, pages, "Home")
 	want := "Home → A → Go"
 	if got := paths["target"]; got != want {
 		t.Errorf("target path: got %q, want %q", got, want)
@@ -148,7 +148,7 @@ func TestAllShortestPathsFromHome_ShortestPathWins(t *testing.T) {
 func TestAllShortestPathsFromHome_NoHomePageReturnsNil(t *testing.T) {
 	g := PageNavGraph{"A": {{Label: "go B", Dest: "B"}}}
 	pages := PageSet{"A": {}, "B": {}}
-	if paths := AllShortestPathsFromHome(g, pages); paths != nil {
+	if paths := AllShortestPathsFromHome(g, pages, "Home"); paths != nil {
 		t.Errorf("expected nil when Home absent, got %v", paths)
 	}
 }
@@ -156,7 +156,7 @@ func TestAllShortestPathsFromHome_NoHomePageReturnsNil(t *testing.T) {
 func TestAllShortestPathsFromHome_UnreachablePageOmitted(t *testing.T) {
 	g := PageNavGraph{"Home": {}} // Sports exists in pages but no edge to it
 	pages := PageSet{"Home": {}, "Sports": {}}
-	paths := AllShortestPathsFromHome(g, pages)
+	paths := AllShortestPathsFromHome(g, pages, "Home")
 	if _, ok := paths["Sports"]; ok {
 		t.Error("unreachable page should be absent from paths map")
 	}
@@ -169,7 +169,7 @@ func TestAllShortestPathsFromHome_LexFirstLabelWhenTieDest(t *testing.T) {
 		{Label: "Zebra", Dest: "sports-list"},
 	}}
 	pages := PageSet{"Home": {}, "sports-list": {}}
-	paths := AllShortestPathsFromHome(g, pages)
+	paths := AllShortestPathsFromHome(g, pages, "Home")
 	want := "Home → Aardvark"
 	if got := paths["sports-list"]; got != want {
 		t.Errorf("tie-break path: got %q, want %q", got, want)

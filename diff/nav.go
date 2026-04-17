@@ -2,6 +2,7 @@ package diff
 
 import (
 	"database/sql"
+	"fmt"
 	"slices"
 	"strings"
 )
@@ -18,8 +19,10 @@ type NavEdge struct {
 
 type PageNavGraph map[string][]NavEdge
 
+// TODO: Find out how different vocabularies name their Home page(s) and make this more robust.
+// Maybe detect the root by "no incoming edges" rather than hardcoding a name.
 const (
-	navPathRootPage = "Home"
+	NavPathRootPage = ".Basic60 Home Page"
 	pathArrow       = " → "
 )
 
@@ -42,6 +45,16 @@ LEFT JOIN action_data ad1     ON ad1.action_id = a.id AND ad1.key = 1
 LEFT JOIN resources r_target  ON r_target.rid = ad0.value
 ORDER BY r_page.name, b.label
 `
+
+func LoadPageNavGraph(dbPath string) (PageNavGraph, error) {
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("open db %s: %w", dbPath, err)
+	}
+	defer db.Close()
+
+	return loadPageNavGraph(db)
+}
 
 func loadPageNavGraph(db *sql.DB) (PageNavGraph, error) {
 	rows, err := db.Query(navEdgeQuery)
@@ -78,13 +91,13 @@ func loadPageNavGraph(db *sql.DB) (PageNavGraph, error) {
 	return navGraph, nil
 }
 
-func AllShortestPathsFromHome(g PageNavGraph, pages PageSet) map[string]string {
-	if _, ok := pages[navPathRootPage]; !ok {
+func AllShortestPathsFromHome(g PageNavGraph, pages PageSet, root string) map[string]string {
+	if _, ok := pages[root]; !ok {
 		return nil
 	}
 
-	reached := map[string]arrival{navPathRootPage: {from: "", button: ""}} // page → how we got there
-	toVisit := []string{navPathRootPage}
+	reached := map[string]arrival{root: {from: "", button: ""}} // page → how we got there
+	toVisit := []string{root}
 
 	for len(toVisit) > 0 {
 		cur := toVisit[0]
@@ -100,8 +113,8 @@ func AllShortestPathsFromHome(g PageNavGraph, pages PageSet) map[string]string {
 
 	paths := map[string]string{}
 	for page := range reached {
-		if page == navPathRootPage {
-			paths[page] = navPathRootPage
+		if page == root {
+			paths[page] = root
 			continue
 		}
 		labels := []string{}
@@ -109,7 +122,7 @@ func AllShortestPathsFromHome(g PageNavGraph, pages PageSet) map[string]string {
 			labels = append(labels, reached[n].button)
 		}
 		slices.Reverse(labels)
-		paths[page] = navPathRootPage + pathArrow + strings.Join(labels, pathArrow)
+		paths[page] = root + pathArrow + strings.Join(labels, pathArrow)
 	}
 
 	return paths

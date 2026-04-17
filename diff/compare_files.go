@@ -39,5 +39,17 @@ func CompareFiles(oldCE, newCE string) (Diff, error) {
 	d := ComputeDiff(oldBtns, newBtns, oldPages, newPages)
 	d.OldLabel = filepath.Base(oldCE)
 	d.NewLabel = filepath.Base(newCE)
+
+	gOld, err := LoadPageNavGraph(oldDB)
+	if err != nil {
+		return Diff{}, err
+	}
+	gNew, err := LoadPageNavGraph(newDB)
+	if err != nil {
+		return Diff{}, err
+	}
+
+	d.NavPathFromOld = AllShortestPathsFromHome(gOld, oldPages, NavPathRootPage)
+	d.NavPathFromNew = AllShortestPathsFromHome(gNew, newPages, NavPathRootPage)
 	return d, nil
 }

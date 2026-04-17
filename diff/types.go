@@ -122,6 +122,11 @@ type Diff struct {
 	ChangedPages       []PageChange // sorted by page name
 	AddedPageButtons   ButtonMap    // buttons on each newly added page (from new file)
 	RemovedPageButtons ButtonMap    // buttons on each removed page (from old file)
+	// NavPathFromOld / NavPathFromNew map page name → "Home → …" breadcrumb string.
+	// Nil when no Home page exists in that snapshot. Populated by CompareFiles,
+	// not ComputeDiff, because they require reading the raw DBs after diffing.
+	NavPathFromOld map[string]string
+	NavPathFromNew map[string]string
 }
 
 // PageChange summarizes button-level changes on a single page that exists in
