@@ -90,45 +90,45 @@ func TestLoadPageNavGraph_DeduplicatesSameDestTwoButtons(t *testing.T) {
 	}
 }
 
-// ── AllShortestPathsFromHome ──────────────────────────────────────────────────
+// ── AllShortestPaths ──────────────────────────────────────────────────────────
 
-func TestAllShortestPathsFromHome_RootPageItself(t *testing.T) {
+func TestAllShortestPaths_OneHop(t *testing.T) {
+	// Button "Sports" on Home navigates to "sports-list".
+	// Root (Home) is omitted; only non-root pages get breadcrumbs.
 	g := PageNavGraph{"Home": {{Label: "Sports", Dest: "sports-list"}}}
 	pages := PageSet{"Home": {}, "sports-list": {}}
-	paths := AllShortestPathsFromHome(g, pages, "Home")
-	if got := paths["Home"]; got != "Home" {
-		t.Errorf("Home path: got %q, want %q", got, "Home")
-	}
-}
-
-func TestAllShortestPathsFromHome_OneHop(t *testing.T) {
-	// Button "Sports" on Home navigates to page "sports-list".
-	// Breadcrumb uses the button label, not the destination page name.
-	g := PageNavGraph{"Home": {{Label: "Sports", Dest: "sports-list"}}}
-	pages := PageSet{"Home": {}, "sports-list": {}}
-	paths := AllShortestPathsFromHome(g, pages, "Home")
+	paths := AllShortestPaths(g, pages)
 	want := "Home → Sports"
 	if got := paths["sports-list"]; got != want {
 		t.Errorf("sports-list path: got %q, want %q", got, want)
 	}
 }
 
-func TestAllShortestPathsFromHome_TwoHops(t *testing.T) {
+func TestAllShortestPaths_RootPageOmitted(t *testing.T) {
+	// Root page has no incoming edges — no breadcrumb for it.
+	g := PageNavGraph{"Home": {{Label: "Sports", Dest: "sports-list"}}}
+	pages := PageSet{"Home": {}, "sports-list": {}}
+	paths := AllShortestPaths(g, pages)
+	if _, ok := paths["Home"]; ok {
+		t.Error("root page should be absent from paths map")
+	}
+}
+
+func TestAllShortestPaths_TwoHops(t *testing.T) {
 	g := PageNavGraph{
 		"Home":        {{Label: "Sports", Dest: "sports-list"}},
 		"sports-list": {{Label: "Indoor", Dest: "indoor-list"}},
 	}
 	pages := PageSet{"Home": {}, "sports-list": {}, "indoor-list": {}}
-	paths := AllShortestPathsFromHome(g, pages, "Home")
+	paths := AllShortestPaths(g, pages)
 	want := "Home → Sports → Indoor"
 	if got := paths["indoor-list"]; got != want {
 		t.Errorf("indoor-list path: got %q, want %q", got, want)
 	}
 }
 
-func TestAllShortestPathsFromHome_ShortestPathWins(t *testing.T) {
-	// Two routes to "target": Home→A→target (2 hops) vs Home→B→target (2 hops).
-	// BFS picks whichever is enqueued first; "A" < "B" so A-route wins.
+func TestAllShortestPaths_ShortestPathWins(t *testing.T) {
+	// Two equal-length routes to "target"; lex-first root edge ("A") wins.
 	g := PageNavGraph{
 		"Home": {
 			{Label: "A", Dest: "via-a"},
@@ -138,40 +138,63 @@ func TestAllShortestPathsFromHome_ShortestPathWins(t *testing.T) {
 		"via-b": {{Label: "Go", Dest: "target"}},
 	}
 	pages := PageSet{"Home": {}, "via-a": {}, "via-b": {}, "target": {}}
-	paths := AllShortestPathsFromHome(g, pages, "Home")
+	paths := AllShortestPaths(g, pages)
 	want := "Home → A → Go"
 	if got := paths["target"]; got != want {
 		t.Errorf("target path: got %q, want %q", got, want)
 	}
 }
 
-func TestAllShortestPathsFromHome_NoHomePageReturnsNil(t *testing.T) {
-	g := PageNavGraph{"A": {{Label: "go B", Dest: "B"}}}
-	pages := PageSet{"A": {}, "B": {}}
-	if paths := AllShortestPathsFromHome(g, pages, "Home"); paths != nil {
-		t.Errorf("expected nil when Home absent, got %v", paths)
-	}
-}
-
-func TestAllShortestPathsFromHome_UnreachablePageOmitted(t *testing.T) {
-	g := PageNavGraph{"Home": {}} // Sports exists in pages but no edge to it
+func TestAllShortestPaths_UnreachablePageOmitted(t *testing.T) {
+	g := PageNavGraph{"Home": {}} // Sports has no incoming or outgoing edges
 	pages := PageSet{"Home": {}, "Sports": {}}
-	paths := AllShortestPathsFromHome(g, pages, "Home")
+	paths := AllShortestPaths(g, pages)
 	if _, ok := paths["Sports"]; ok {
 		t.Error("unreachable page should be absent from paths map")
 	}
 }
 
-func TestAllShortestPathsFromHome_LexFirstLabelWhenTieDest(t *testing.T) {
-	// Two buttons on Home navigate to the same destination; "Aardvark" < "Zebra".
+func TestAllShortestPaths_LexFirstLabelWhenTieDest(t *testing.T) {
 	g := PageNavGraph{"Home": {
 		{Label: "Aardvark", Dest: "sports-list"},
 		{Label: "Zebra", Dest: "sports-list"},
 	}}
 	pages := PageSet{"Home": {}, "sports-list": {}}
-	paths := AllShortestPathsFromHome(g, pages, "Home")
+	paths := AllShortestPaths(g, pages)
 	want := "Home → Aardvark"
 	if got := paths["sports-list"]; got != want {
 		t.Errorf("tie-break path: got %q, want %q", got, want)
+	}
+}
+
+func TestAllShortestPaths_MultipleRoots(t *testing.T) {
+	// Two disconnected root → leaf pairs; both leaves get breadcrumbs.
+	g := PageNavGraph{
+		"RootA": {{Label: "Go A", Dest: "leaf-a"}},
+		"RootB": {{Label: "Go B", Dest: "leaf-b"}},
+	}
+	pages := PageSet{"RootA": {}, "RootB": {}, "leaf-a": {}, "leaf-b": {}}
+	paths := AllShortestPaths(g, pages)
+	if got := paths["leaf-a"]; got != "RootA → Go A" {
+		t.Errorf("leaf-a: got %q, want %q", got, "RootA → Go A")
+	}
+	if got := paths["leaf-b"]; got != "RootB → Go B" {
+		t.Errorf("leaf-b: got %q, want %q", got, "RootB → Go B")
+	}
+	if _, ok := paths["RootA"]; ok {
+		t.Error("RootA should be omitted (it is a root)")
+	}
+	if _, ok := paths["RootB"]; ok {
+		t.Error("RootB should be omitted (it is a root)")
+	}
+}
+
+func TestAllShortestPaths_EmptyGraphReturnsEmptyMap(t *testing.T) {
+	// No edges at all — every page is a root, none get breadcrumbs.
+	g := PageNavGraph{}
+	pages := PageSet{"A": {}, "B": {}}
+	paths := AllShortestPaths(g, pages)
+	if len(paths) != 0 {
+		t.Errorf("expected empty map, got %v", paths)
 	}
 }

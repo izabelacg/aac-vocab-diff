@@ -49,7 +49,7 @@ func CompareFiles(oldCE, newCE string) (Diff, error) {
 		return Diff{}, err
 	}
 
-	d.NavPathFromOld = AllShortestPathsFromHome(gOld, oldPages, NavPathRootPage)
-	d.NavPathFromNew = AllShortestPathsFromHome(gNew, newPages, NavPathRootPage)
+	d.NavPathFromOld = AllShortestPaths(gOld, oldPages)
+	d.NavPathFromNew = AllShortestPaths(gNew, newPages)
 	return d, nil
 }

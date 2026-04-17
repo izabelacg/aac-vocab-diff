@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 )
 
@@ -19,12 +20,7 @@ type NavEdge struct {
 
 type PageNavGraph map[string][]NavEdge
 
-// TODO: Find out how different vocabularies name their Home page(s) and make this more robust.
-// Maybe detect the root by "no incoming edges" rather than hardcoding a name.
-const (
-	NavPathRootPage = ".Basic60 Home Page"
-	pathArrow       = " → "
-)
+const pathArrow = " → "
 
 const navEdgeQuery = `
 SELECT
@@ -82,7 +78,11 @@ func loadPageNavGraph(db *sql.DB) (PageNavGraph, error) {
 			continue // already have an edge from source to dest
 		}
 		seenDest[source][dest] = struct{}{}
-		navGraph[source] = append(navGraph[source], NavEdge{Label: btnLabel, Dest: dest})
+		label := btnLabel
+		if label == "" {
+			label = dest // unlabeled nav button: use destination page name as the step
+		}
+		navGraph[source] = append(navGraph[source], NavEdge{Label: label, Dest: dest})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -91,13 +91,34 @@ func loadPageNavGraph(db *sql.DB) (PageNavGraph, error) {
 	return navGraph, nil
 }
 
-func AllShortestPathsFromHome(g PageNavGraph, pages PageSet, root string) map[string]string {
-	if _, ok := pages[root]; !ok {
-		return nil
+func findRoots(g PageNavGraph, pages PageSet) []string {
+	hasIncoming := map[string]bool{}
+	for _, edges := range g {
+		for _, e := range edges {
+			hasIncoming[e.Dest] = true
+		}
 	}
+	roots := []string{}
+	for p := range pages {
+		if !hasIncoming[p] {
+			roots = append(roots, p)
+		}
+	}
+	sort.Strings(roots)
+	return roots
+}
 
-	reached := map[string]arrival{root: {from: "", button: ""}} // page → how we got there
-	toVisit := []string{root}
+func AllShortestPaths(g PageNavGraph, pages PageSet) map[string]string {
+	roots := findRoots(g, pages)
+	if len(roots) == 0 {
+		return map[string]string{}
+	}
+	reached := map[string]arrival{}
+	toVisit := []string{}
+	for _, r := range roots {
+		reached[r] = arrival{from: "", button: ""}
+		toVisit = append(toVisit, r)
+	}
 
 	for len(toVisit) > 0 {
 		cur := toVisit[0]
@@ -113,16 +134,17 @@ func AllShortestPathsFromHome(g PageNavGraph, pages PageSet, root string) map[st
 
 	paths := map[string]string{}
 	for page := range reached {
-		if page == root {
-			paths[page] = root
-			continue
+		if reached[page].from == "" {
+			continue // root page — omit
 		}
+
 		labels := []string{}
-		for n := page; reached[n].from != ""; n = reached[n].from {
+		n := page
+		for ; reached[n].from != ""; n = reached[n].from {
 			labels = append(labels, reached[n].button)
 		}
 		slices.Reverse(labels)
-		paths[page] = root + pathArrow + strings.Join(labels, pathArrow)
+		paths[page] = n + pathArrow + strings.Join(labels, pathArrow)
 	}
 
 	return paths

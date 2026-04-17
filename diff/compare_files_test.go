@@ -6,29 +6,18 @@ import (
 	"github.com/izabelacg/aac-vocab-diff/diff"
 )
 
-func TestCompareFiles_NavPathsConsistentWithPages(t *testing.T) {
-	// Verify wiring by checking NavPath maps are nil iff the vocab has no
-	// "Home" page — independent of which fixture we use.
-	dbPath, cleanup, err := diff.ExtractC4V(fixtureFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
-	pages, err := diff.LoadPages(dbPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, hasHome := pages[diff.NavPathRootPage]
-
+func TestCompareFiles_NavPathsPopulated(t *testing.T) {
+	// With multi-source BFS, nav paths are always computed (non-nil map)
+	// as long as the vocab has any navigate-to-page edges at all.
 	d, err := diff.CompareFiles(fixtureFile, fixtureFile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if hasHome && d.NavPathFromOld == nil {
-		t.Error("NavPathFromOld is nil but Home page exists: CompareFiles is not wiring nav path loading")
+	if d.NavPathFromOld == nil {
+		t.Error("NavPathFromOld is nil: CompareFiles is not wiring nav path loading")
 	}
-	if !hasHome && d.NavPathFromOld != nil {
-		t.Error("NavPathFromOld should be nil when no Home page exists")
+	if d.NavPathFromNew == nil {
+		t.Error("NavPathFromNew is nil: CompareFiles is not wiring nav path loading")
 	}
 }
 
