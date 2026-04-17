@@ -50,9 +50,12 @@ type HTMLSection struct {
 
 // HTMLCard represents one page-level card in the report.
 type HTMLCard struct {
-	Name string
-	Kind string // "added" | "removed" | "changed"
-	Rows []HTMLRow
+	Name       string
+	Kind       string // "added" | "removed" | "changed"
+	Rows       []HTMLRow
+	PathSingle string // removed/added pages, or changed when old == new
+	PathOld    string // changed page only, when old != new
+	PathNew    string // always set alongside PathOld
 }
 
 // HTMLRow represents one button row inside a page card.
@@ -106,7 +109,9 @@ func NewHTMLData(d diff.Diff) HTMLData {
 		sec := HTMLSection{Title: "Removed pages"}
 		for _, p := range d.RemovedPages {
 			rows := pageButtonRows(d.RemovedPageButtons[p], removedRow)
-			sec.Cards = append(sec.Cards, HTMLCard{Name: p, Kind: "removed", Rows: rows})
+			card := HTMLCard{Name: p, Kind: "removed", Rows: rows}
+			card.PathSingle = d.NavPathFromOld[p] // "" when unreachable — template shows nothing
+			sec.Cards = append(sec.Cards, card)
 		}
 		data.Sections = append(data.Sections, sec)
 	}
@@ -124,6 +129,17 @@ func NewHTMLData(d diff.Diff) HTMLData {
 			for _, bc := range ch.Modified {
 				card.Rows = append(card.Rows, modifiedRow(bc))
 			}
+			oldP := d.NavPathFromOld[ch.PageName]
+			newP := d.NavPathFromNew[ch.PageName]
+			switch {
+			case oldP != "" && newP != "" && oldP != newP:
+				card.PathOld, card.PathNew = oldP, newP
+			case oldP != "":
+				card.PathSingle = oldP
+			case newP != "":
+				card.PathSingle = newP
+				// default: both empty (Home absent or page unreachable) — leave PathSingle=""
+			}
 			sec.Cards = append(sec.Cards, card)
 		}
 		data.Sections = append(data.Sections, sec)
@@ -133,7 +149,9 @@ func NewHTMLData(d diff.Diff) HTMLData {
 		sec := HTMLSection{Title: "New pages"}
 		for _, p := range d.AddedPages {
 			rows := pageButtonRows(d.AddedPageButtons[p], addedRow)
-			sec.Cards = append(sec.Cards, HTMLCard{Name: p, Kind: "added", Rows: rows})
+			card := HTMLCard{Name: p, Kind: "added", Rows: rows}
+			card.PathSingle = d.NavPathFromNew[p]
+			sec.Cards = append(sec.Cards, card)
 		}
 		data.Sections = append(data.Sections, sec)
 	}

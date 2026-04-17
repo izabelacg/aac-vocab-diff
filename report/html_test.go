@@ -224,3 +224,131 @@ func TestNewHTMLData_EscapesSpecialChars(t *testing.T) {
 		t.Error("expected HTML-escaped '&amp;' for label with ampersand")
 	}
 }
+
+// ── Nav path: NewHTMLData model ───────────────────────────────────────────────
+
+func TestNewHTMLData_RemovedPageFillsPathSingle(t *testing.T) {
+	d := diff.Diff{
+		RemovedPages:   []string{"Sports"},
+		NavPathFromOld: map[string]string{"Sports": "Home → Sports"},
+	}
+	data := report.NewHTMLData(d)
+	card := data.Sections[0].Cards[0]
+	if card.PathSingle != "Home → Sports" {
+		t.Errorf("PathSingle: got %q, want %q", card.PathSingle, "Home → Sports")
+	}
+	if card.PathOld != "" || card.PathNew != "" {
+		t.Errorf("PathOld/PathNew should be empty for removed page, got %q/%q", card.PathOld, card.PathNew)
+	}
+}
+
+func TestNewHTMLData_AddedPageFillsPathSingle(t *testing.T) {
+	d := diff.Diff{
+		AddedPages:     []string{"Sports"},
+		NavPathFromNew: map[string]string{"Sports": "Home → Sports"},
+	}
+	data := report.NewHTMLData(d)
+	card := data.Sections[0].Cards[0]
+	if card.PathSingle != "Home → Sports" {
+		t.Errorf("PathSingle: got %q, want %q", card.PathSingle, "Home → Sports")
+	}
+}
+
+func TestNewHTMLData_ChangedPageSamePath_SingleLine(t *testing.T) {
+	d := diff.Diff{
+		ChangedPages:   []diff.PageChange{{PageName: "Sports"}},
+		NavPathFromOld: map[string]string{"Sports": "Home → Sports"},
+		NavPathFromNew: map[string]string{"Sports": "Home → Sports"},
+	}
+	data := report.NewHTMLData(d)
+	card := data.Sections[0].Cards[0]
+	if card.PathSingle != "Home → Sports" {
+		t.Errorf("PathSingle: got %q, want %q", card.PathSingle, "Home → Sports")
+	}
+	if card.PathOld != "" || card.PathNew != "" {
+		t.Errorf("PathOld/PathNew should be empty when paths are identical, got %q/%q", card.PathOld, card.PathNew)
+	}
+}
+
+func TestNewHTMLData_ChangedPageDiffPaths_SplitLines(t *testing.T) {
+	d := diff.Diff{
+		ChangedPages:   []diff.PageChange{{PageName: "Sports"}},
+		NavPathFromOld: map[string]string{"Sports": "Home → Old Cat → Sports"},
+		NavPathFromNew: map[string]string{"Sports": "Home → New Cat → Sports"},
+	}
+	data := report.NewHTMLData(d)
+	card := data.Sections[0].Cards[0]
+	if card.PathOld != "Home → Old Cat → Sports" {
+		t.Errorf("PathOld: got %q", card.PathOld)
+	}
+	if card.PathNew != "Home → New Cat → Sports" {
+		t.Errorf("PathNew: got %q", card.PathNew)
+	}
+	if card.PathSingle != "" {
+		t.Errorf("PathSingle should be empty for split paths, got %q", card.PathSingle)
+	}
+}
+
+func TestNewHTMLData_NoNavPath_FieldsEmpty(t *testing.T) {
+	d := diff.Diff{
+		ChangedPages: []diff.PageChange{{PageName: "Sports"}},
+		// no NavPathFromOld / NavPathFromNew
+	}
+	data := report.NewHTMLData(d)
+	card := data.Sections[0].Cards[0]
+	if card.PathSingle != "" || card.PathOld != "" || card.PathNew != "" {
+		t.Errorf("all path fields should be empty when nav maps are nil, got single=%q old=%q new=%q",
+			card.PathSingle, card.PathOld, card.PathNew)
+	}
+}
+
+// ── Nav path: WriteHTML rendering ────────────────────────────────────────────
+
+func TestWriteHTML_SingleNavPath(t *testing.T) {
+	d := diff.Diff{
+		OldLabel:       "old.ce",
+		NewLabel:       "new.ce",
+		RemovedPages:   []string{"Sports"},
+		NavPathFromOld: map[string]string{"Sports": "Home → Sports"},
+	}
+	var sb strings.Builder
+	_ = report.WriteHTML(&sb, report.NewHTMLData(d))
+	out := sb.String()
+	if !strings.Contains(out, "Home → Sports") {
+		t.Error("expected breadcrumb 'Home → Sports' in HTML output")
+	}
+	if !strings.Contains(out, "page-path") {
+		t.Error("expected 'page-path' CSS class in HTML output")
+	}
+}
+
+func TestWriteHTML_SplitNavPath(t *testing.T) {
+	d := diff.Diff{
+		OldLabel:       "old.ce",
+		NewLabel:       "new.ce",
+		ChangedPages:   []diff.PageChange{{PageName: "Sports"}},
+		NavPathFromOld: map[string]string{"Sports": "Home → Old Cat → Sports"},
+		NavPathFromNew: map[string]string{"Sports": "Home → New Cat → Sports"},
+	}
+	var sb strings.Builder
+	_ = report.WriteHTML(&sb, report.NewHTMLData(d))
+	out := sb.String()
+	if !strings.Contains(out, "path-label") {
+		t.Error("expected 'path-label' class for Old:/New: split")
+	}
+	if !strings.Contains(out, "Old Cat") || !strings.Contains(out, "New Cat") {
+		t.Error("expected both old and new path text in HTML output")
+	}
+}
+
+func TestWriteHTML_NoNavPath_NoPagePathClass(t *testing.T) {
+	d := diff.Diff{
+		ChangedPages: []diff.PageChange{{PageName: "Sports"}},
+		// no nav paths — page-path div should not appear
+	}
+	var sb strings.Builder
+	_ = report.WriteHTML(&sb, report.NewHTMLData(d))
+	if strings.Contains(sb.String(), `class="page-path"`) {
+		t.Error("page-path element should not appear when no nav path is set")
+	}
+}

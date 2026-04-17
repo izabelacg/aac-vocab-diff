@@ -22,11 +22,15 @@ h1 { font-size: 22px; margin-bottom: 4px; }
 section { margin-bottom: 20px; }
 .page-card { background: #fff; border-radius: 10px; overflow: hidden;
              box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 16px; }
-.page-header { padding: 10px 16px; font-weight: 600; font-size: 15px;
-               display: flex; align-items: center; gap: 8px; }
+.page-header { padding: 10px 16px; font-size: 15px;
+               display: flex; flex-direction: column;
+               align-items: flex-start; gap: 4px; }
 .page-header.added   { background: #dafbe1; color: #1a7f37; }
 .page-header.removed { background: #ffebe9; color: #cf222e; }
 .page-header.changed { background: #fff8c5; color: #7d4e00; }
+.page-header-title { font-weight: 600; }
+.page-path  { font-size: 12px; font-weight: 400; color: #555; }
+.path-label { color: #888; margin-right: 6px; }
 table { width: 100%; border-collapse: collapse; }
 th { background: #f0f0f0; text-align: left; padding: 7px 12px;
      font-size: 12px; color: #555; font-weight: 600; border-bottom: 1px solid #e0e0e0; }
@@ -105,7 +109,21 @@ h2.section-title { font-size: 14px; color: #555; margin: 20px 0 8px;
         <h2 class="section-title">{{.Title}}</h2>
         {{ range .Cards }}
         <div class="page-card">
-            <div class="page-header {{.Kind}}">{{.Name}}</div>
+            <div class="page-header {{.Kind}}">
+                <div class="page-header-title">{{.Name}}</div>
+                {{ if .PathSingle }}
+                <div class="page-path">{{.PathSingle}}</div>
+                {{ else if .PathOld }}
+                <div class="page-path">
+                    <div>
+                        <span class="path-label">Old:</span> {{.PathOld}}
+                    </div>
+                    <div>
+                        <span class="path-label">New:</span> {{.PathNew}}
+                    </div>
+                </div>
+                {{ end }}
+            </div>
             <table>
                 <thead>
                     <tr>
