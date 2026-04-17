@@ -12,6 +12,7 @@ type Button struct {
 	Visible       bool
 	Pronunciation string
 	Actions       []string // human-readable, e.g. ["speak", "navigate to page: \"Home\""]
+	Dest          string   // only used for navigate buttons; the page name it points to
 }
 
 // Fingerprint encodes all fields into a single string so a Button can be used
