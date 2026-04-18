@@ -23,9 +23,11 @@ type PageNavGraph map[string][]NavEdge
 const pathArrow = " → "
 
 const navEdgeQuery = `
+SELECT source, btn_label, btn_message, target_name, target_value, vocab FROM (
 SELECT
     r_page.name                  AS source,
     COALESCE(b.label, '')        AS btn_label,
+    COALESCE(b.message, '')      AS btn_message,
     COALESCE(r_target.name, '')  AS target_name,
     COALESCE(ad0.value, '')      AS target_value,
     COALESCE(ad1.value, '')      AS vocab
@@ -46,6 +48,7 @@ UNION ALL
 SELECT
     r_page.name                  AS source,
     COALESCE(b.label, '')        AS btn_label,
+    COALESCE(b.message, '')      AS btn_message,
     COALESCE(r_target.name, '')  AS target_name,
     COALESCE(ad0.value, '')      AS target_value,
     COALESCE(ad1.value, '')      AS vocab
@@ -61,8 +64,7 @@ JOIN actions a                ON a.resource_id     = b.resource_id AND a.code IN
 LEFT JOIN action_data ad0     ON ad0.action_id = a.id AND ad0.key = 0
 LEFT JOIN action_data ad1     ON ad1.action_id = a.id AND ad1.key = 1
 LEFT JOIN resources r_target  ON r_target.rid = ad0.value
-
-ORDER BY source, btn_label
+) ORDER BY source, CASE WHEN btn_label = '' THEN 1 ELSE 0 END, btn_label
 `
 
 func LoadPageNavGraph(dbPath string) (PageNavGraph, error) {
@@ -88,8 +90,8 @@ func loadPageNavGraph(db *sql.DB) (PageNavGraph, error) {
 
 	navGraph := make(PageNavGraph)
 	for rows.Next() {
-		var source, btnLabel, targetName, targetValue, vocab string
-		if err := rows.Scan(&source, &btnLabel, &targetName, &targetValue, &vocab); err != nil {
+		var source, btnLabel, btnMessage, targetName, targetValue, vocab string
+		if err := rows.Scan(&source, &btnLabel, &btnMessage, &targetName, &targetValue, &vocab); err != nil {
 			return nil, err
 		}
 		dest := navigateDestination(targetName, targetValue, vocab)
@@ -103,7 +105,11 @@ func loadPageNavGraph(db *sql.DB) (PageNavGraph, error) {
 		seenDest[source][dest] = struct{}{}
 		label := btnLabel
 		if label == "" {
-			label = dest // unlabeled nav button: use destination page name as the step
+			if btnMessage == "" {
+				label = "[unlabeled]"
+			} else {
+				label = fmt.Sprintf("<%s>", btnMessage)
+			}
 		}
 		navGraph[source] = append(navGraph[source], NavEdge{Label: label, Dest: dest})
 	}
