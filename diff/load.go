@@ -254,6 +254,15 @@ func loadModifiers(db *sql.DB) (ModifierMap, error) {
 	return mm, mRows.Err()
 }
 
+func LoadModifiers(dbPath string) (ModifierMap, error) {
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("open db %s: %w", dbPath, err)
+	}
+	defer db.Close()
+	return loadModifiers(db)
+}
+
 func navigateDestination(targetName, value, vocab string) string {
 	dest := targetName
 	if dest == "" {

@@ -49,6 +49,18 @@ func CompareFiles(oldCE, newCE string) (Diff, error) {
 		return Diff{}, err
 	}
 
+	oldMods, err := LoadModifiers(oldDB)
+	if err != nil {
+		return Diff{}, err
+	}
+
+	newMods, err := LoadModifiers(newDB)
+	if err != nil {
+		return Diff{}, err
+	}
+
+	d.WordFormChanges = ComputeModifierDiff(oldMods, newMods)
+
 	d.NavPathFromOld = AllShortestPaths(gOld, oldPages)
 	d.NavPathFromNew = AllShortestPaths(gNew, newPages)
 	return d, nil

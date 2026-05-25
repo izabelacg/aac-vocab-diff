@@ -136,3 +136,45 @@ func ComputeDiff(oldBtns, newBtns ButtonMap, oldPages, newPages PageSet) Diff {
 		RemovedPageButtons: removedPageBtns,
 	}
 }
+
+func computeModifierDiff(old, new ModifierMap) ModifierSetDiff {
+	var added, removed, modified []ModifierChange
+
+	for key, newBtn := range new {
+		if oldBtn, ok := old[key]; !ok {
+			added = append(added, ModifierChange{Key: key, After: newBtn})
+		} else if oldBtn.Fingerprint() != newBtn.Fingerprint() {
+			modified = append(modified, ModifierChange{Key: key, Before: oldBtn, After: newBtn})
+		}
+	}
+	for key, oldBtn := range old {
+		if _, ok := new[key]; !ok {
+			removed = append(removed, ModifierChange{Key: key, Before: oldBtn})
+		}
+	}
+
+	sort.Slice(added, func(i, j int) bool {
+		if added[i].Key.ButtonSetName != added[j].Key.ButtonSetName {
+			return added[i].Key.ButtonSetName < added[j].Key.ButtonSetName
+		}
+		return added[i].Key.FormIndex < added[j].Key.FormIndex
+	})
+	sort.Slice(removed, func(i, j int) bool {
+		if removed[i].Key.ButtonSetName != removed[j].Key.ButtonSetName {
+			return removed[i].Key.ButtonSetName < removed[j].Key.ButtonSetName
+		}
+		return removed[i].Key.FormIndex < removed[j].Key.FormIndex
+	})
+	sort.Slice(modified, func(i, j int) bool {
+		if modified[i].Key.ButtonSetName != modified[j].Key.ButtonSetName {
+			return modified[i].Key.ButtonSetName < modified[j].Key.ButtonSetName
+		}
+		return modified[i].Key.FormIndex < modified[j].Key.FormIndex
+	})
+
+	return ModifierSetDiff{Added: added, Removed: removed, Modified: modified}
+}
+
+func ComputeModifierDiff(old, new ModifierMap) ModifierSetDiff {
+	return computeModifierDiff(old, new)
+}
