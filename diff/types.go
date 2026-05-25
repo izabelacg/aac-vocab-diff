@@ -125,8 +125,9 @@ type Diff struct {
 	// NavPathFromOld / NavPathFromNew map page name → "Home → …" breadcrumb string.
 	// Nil when no Home page exists in that snapshot. Populated by CompareFiles,
 	// not ComputeDiff, because they require reading the raw DBs after diffing.
-	NavPathFromOld map[string]string
-	NavPathFromNew map[string]string
+	NavPathFromOld  map[string]string
+	NavPathFromNew  map[string]string
+	WordFormChanges ModifierSetDiff // nil/empty when nothing changed
 }
 
 // PageChange summarizes button-level changes on a single page that exists in
@@ -143,4 +144,27 @@ type ButtonChange struct {
 	Key    ButtonKey
 	Before Button
 	After  Button
+}
+
+// ModifierKey uniquely identifies one form of one word in the button-set system.
+// ButtonSetName is the word label (e.g. "good"); FormIndex is the modifier
+// integer stored in button_set_modifiers.modifier (0 = base form).
+type ModifierKey struct {
+	ButtonSetName string
+	FormIndex     int
+}
+
+// ModifierChange records a single logical edit to a word-form modifier button.
+type ModifierChange struct {
+	Key    ModifierKey
+	Before Button // reuse Button — same five diffable fields
+	After  Button
+}
+
+// ModifierSetDiff summarises all modifier-button changes across the vocab.
+// Analogous to []PageChange but keyed by (word, form) instead of page name.
+type ModifierSetDiff struct {
+	Added    []ModifierChange // modifier present in new, absent in old
+	Removed  []ModifierChange // modifier present in old, absent in new
+	Modified []ModifierChange // same key, different fingerprint
 }
