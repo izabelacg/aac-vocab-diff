@@ -81,6 +81,31 @@ func PrintDiff(d diff.Diff) {
 		fmt.Println("No button changes found on existing pages.")
 	}
 
+	wfc := d.WordFormChanges
+	total := len(wfc.Added) + len(wfc.Removed) + len(wfc.Modified)
+	if total > 0 {
+		fmt.Printf("WORD-FORM CHANGES (%d):\n\n", total)
+		for _, mc := range wfc.Added {
+			fmt.Printf("  Word form: %s (%s)\n", mc.Key.ButtonSetName, formLabel(mc.Key.FormIndex))
+			fmt.Println(formatButton("+", mc.After, "speaks"))
+		}
+		for _, mc := range wfc.Removed {
+			fmt.Printf("  Word form: %s (%s)\n", mc.Key.ButtonSetName, formLabel(mc.Key.FormIndex))
+			fmt.Println(formatButton("-", mc.Before, "spoke"))
+		}
+		for _, mc := range wfc.Modified {
+			fmt.Printf("  Word form: %s (%s)\n", mc.Key.ButtonSetName, formLabel(mc.Key.FormIndex))
+			fmt.Printf("    ~ (modified)\n")
+			if mc.Before.Pronunciation != mc.After.Pronunciation {
+				fmt.Printf("        pronunciation: %s → %s\n",
+					quotedOrNone(mc.Before.Pronunciation),
+					quotedOrNone(mc.After.Pronunciation))
+			}
+			// visible / action diffs follow the same pattern as the page-button block
+		}
+		fmt.Println()
+	}
+
 	totalAdded, totalRemoved, totalModified := 0, 0, 0
 	for _, ch := range d.ChangedPages {
 		totalAdded += len(ch.Added)
@@ -92,6 +117,13 @@ func PrintDiff(d diff.Diff) {
 		len(d.AddedPages), len(d.RemovedPages), len(d.ChangedPages))
 	fmt.Printf("         %d button(s) added, %d button(s) removed, %d button(s) with changed properties.\n\n",
 		totalAdded, totalRemoved, totalModified)
+}
+
+func formLabel(index int) string {
+	if index == 0 {
+		return "base"
+	}
+	return fmt.Sprintf("form #%d", index)
 }
 
 func formatButton(prefix string, btn diff.Button, verb string) string {

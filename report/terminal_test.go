@@ -284,3 +284,139 @@ func TestPrintDiff_SummaryCounts(t *testing.T) {
 		}
 	}
 }
+
+// ── Word-form modifier section ──────────────────────────────────────
+
+func TestPrintDiff_WordFormChanges_NoSectionWhenEmpty(t *testing.T) {
+	d := diff.Diff{OldLabel: "a.ce", NewLabel: "b.ce"}
+	out := captureStdout(t, func() { report.PrintDiff(d) })
+	if strings.Contains(out, "WORD-FORM") {
+		t.Errorf("did not expect WORD-FORM section when WordFormChanges is empty, got:\n%s", out)
+	}
+}
+
+func TestPrintDiff_WordFormChanges_ShowsSectionHeader(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Added: []diff.ModifierChange{{
+				Key:   diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
+				After: diff.Button{Label: "good", Visible: true},
+			}},
+		},
+	}
+	out := captureStdout(t, func() { report.PrintDiff(d) })
+	if !strings.Contains(out, "WORD-FORM") {
+		t.Errorf("expected WORD-FORM section header, got:\n%s", out)
+	}
+}
+
+func TestPrintDiff_WordFormChanges_AddedShowsWordName(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Added: []diff.ModifierChange{{
+				Key:   diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
+				After: diff.Button{Label: "good", Visible: true},
+			}},
+		},
+	}
+	out := captureStdout(t, func() { report.PrintDiff(d) })
+	if !strings.Contains(out, "good") {
+		t.Errorf("expected word name 'good' in output, got:\n%s", out)
+	}
+	if !strings.Contains(out, "+") {
+		t.Errorf("expected '+' prefix for added modifier, got:\n%s", out)
+	}
+}
+
+func TestPrintDiff_WordFormChanges_RemovedShowsWordName(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Removed: []diff.ModifierChange{{
+				Key:    diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0},
+				Before: diff.Button{Label: "eat", Visible: true},
+			}},
+		},
+	}
+	out := captureStdout(t, func() { report.PrintDiff(d) })
+	if !strings.Contains(out, "eat") {
+		t.Errorf("expected word name 'eat' in output, got:\n%s", out)
+	}
+	if !strings.Contains(out, "-") {
+		t.Errorf("expected '-' prefix for removed modifier, got:\n%s", out)
+	}
+}
+
+func TestPrintDiff_WordFormChanges_ModifiedShowsBeforeAndAfter(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Modified: []diff.ModifierChange{{
+				Key:    diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
+				Before: diff.Button{Label: "good", Pronunciation: ""},
+				After:  diff.Button{Label: "good", Pronunciation: "good job kid"},
+			}},
+		},
+	}
+	out := captureStdout(t, func() { report.PrintDiff(d) })
+	if !strings.Contains(out, "good") {
+		t.Errorf("expected word name 'good' in output, got:\n%s", out)
+	}
+	if !strings.Contains(out, "~") {
+		t.Errorf("expected '~' prefix for modified modifier, got:\n%s", out)
+	}
+	if !strings.Contains(out, "good job kid") {
+		t.Errorf("expected new pronunciation in output, got:\n%s", out)
+	}
+}
+
+// FormIndex 0 should be displayed as "base", not "form #0".
+func TestPrintDiff_WordFormChanges_BaseFormLabel(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Modified: []diff.ModifierChange{{
+				Key:    diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
+				Before: diff.Button{Label: "good"},
+				After:  diff.Button{Label: "good", Pronunciation: "good job kid"},
+			}},
+		},
+	}
+	out := captureStdout(t, func() { report.PrintDiff(d) })
+	if !strings.Contains(out, "base") {
+		t.Errorf("expected 'base' label for FormIndex 0, got:\n%s", out)
+	}
+}
+
+// FormIndex > 0 should be displayed as "form #N".
+func TestPrintDiff_WordFormChanges_NonBaseFormLabel(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Modified: []diff.ModifierChange{{
+				Key:    diff.ModifierKey{ButtonSetName: "eat", FormIndex: 6},
+				Before: diff.Button{Label: "eat"},
+				After:  diff.Button{Label: "eating"},
+			}},
+		},
+	}
+	out := captureStdout(t, func() { report.PrintDiff(d) })
+	if !strings.Contains(out, "form #6") {
+		t.Errorf("expected 'form #6' label for FormIndex 6, got:\n%s", out)
+	}
+}
+
+// The section header count must equal the total number of changes across
+// Added + Removed + Modified.
+func TestPrintDiff_WordFormChanges_CountInHeader(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Added: []diff.ModifierChange{
+				{Key: diff.ModifierKey{ButtonSetName: "go", FormIndex: 0}, After: diff.Button{Label: "go"}},
+			},
+			Modified: []diff.ModifierChange{
+				{Key: diff.ModifierKey{ButtonSetName: "good", FormIndex: 0}, Before: diff.Button{}, After: diff.Button{Pronunciation: "x"}},
+			},
+		},
+	}
+	out := captureStdout(t, func() { report.PrintDiff(d) })
+	if !strings.Contains(out, "2") {
+		t.Errorf("expected count '2' in word-form section header, got:\n%s", out)
+	}
+}
