@@ -3,6 +3,8 @@
 *.ce
 !diff/testdata/WordPower60 Basic SS_2026-04-08.ce
 !diff/testdata/WordPower60 Basic SS_Custom_2026-04-08.ce
+!diff/testdata/WordPower60 Basic SS_Custom_2026-04-18.ce
+!diff/testdata/WordPower60 Basic SS_Custom_2026-05-25.ce
 
 # Generated output — not part of the source
 *.html
