@@ -75,6 +75,22 @@ make deploy-pi                          # uses PI_HOST=raspberrypi.local by defa
 This cross-compiles the ARM64 binary, copies it and the systemd unit file to
 the Pi, and enables/restarts the service.
 
+### Persistent logs across reboots
+
+By default, Raspberry Pi OS stores the systemd journal in memory and loses it on
+reboot. To keep logs across power outages:
+
+```bash
+sudo mkdir -p /var/log/journal
+sudo systemd-tmpfiles --create --prefix /var/log/journal
+sudo systemctl restart systemd-journald
+```
+
+After that, `journalctl --boot=-1 -u aac-vocab-diff` shows logs from the
+previous boot. The analytics log at `/var/log/aac-vocab-diff/analytics.log` is
+always written to disk and survives reboots, but only records event names and
+timestamps — the systemd journal is needed for detailed error messages.
+
 ## What is compared
 
 For each button, the tool tracks changes to:
