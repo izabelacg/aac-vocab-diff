@@ -175,12 +175,12 @@ func NewHTMLData(d diff.Diff) HTMLData {
 		for _, mc := range wfc.Added {
 			btn := mc.After
 			btn.Label = formLabel(mc.Key.FormIndex) // repurpose Label as the form identifier
-			addRow(mc.Key.ButtonSetName, addedRow(btn))
+			addRow(mc.ButtonSetName, addedRow(btn))
 		}
 		for _, mc := range wfc.Removed {
 			btn := mc.Before
 			btn.Label = formLabel(mc.Key.FormIndex)
-			addRow(mc.Key.ButtonSetName, removedRow(btn))
+			addRow(mc.ButtonSetName, removedRow(btn))
 		}
 		for _, mc := range wfc.Modified {
 			row := modifiedRow(diff.ButtonChange{
@@ -188,7 +188,7 @@ func NewHTMLData(d diff.Diff) HTMLData {
 				Before: mc.Before,
 				After:  mc.After,
 			})
-			addRow(mc.Key.ButtonSetName, row)
+			addRow(mc.ButtonSetName, row)
 		}
 
 		for _, name := range order {

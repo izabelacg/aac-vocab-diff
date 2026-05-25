@@ -6,17 +6,24 @@ import (
 	"github.com/izabelacg/aac-vocab-diff/diff"
 )
 
+func entry(name string, btn diff.Button) diff.ModifierEntry {
+	return diff.ModifierEntry{Name: name, Button: btn}
+}
+
 func TestComputeModifierDiff_AddedModifier(t *testing.T) {
 	oldMods := diff.ModifierMap{}
 	newMods := diff.ModifierMap{
-		diff.ModifierKey{ButtonSetName: "good", FormIndex: 0}: diff.Button{Label: "good", Message: "good job kid"},
+		diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0}: entry("good", diff.Button{Label: "good", Message: "good job kid"}),
 	}
 	result := diff.ComputeModifierDiff(oldMods, newMods)
 	if len(result.Added) != 1 {
 		t.Fatalf("Added: got %d, want 1", len(result.Added))
 	}
-	if result.Added[0].Key != (diff.ModifierKey{ButtonSetName: "good", FormIndex: 0}) {
+	if result.Added[0].Key != (diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0}) {
 		t.Errorf("Added key: got %+v", result.Added[0].Key)
+	}
+	if result.Added[0].ButtonSetName != "good" {
+		t.Errorf("Added ButtonSetName: got %q, want 'good'", result.Added[0].ButtonSetName)
 	}
 	if result.Added[0].After.Message != "good job kid" {
 		t.Errorf("Added After.Message: got %q", result.Added[0].After.Message)
@@ -28,15 +35,18 @@ func TestComputeModifierDiff_AddedModifier(t *testing.T) {
 
 func TestComputeModifierDiff_RemovedModifier(t *testing.T) {
 	oldMods := diff.ModifierMap{
-		diff.ModifierKey{ButtonSetName: "go", FormIndex: 0}: diff.Button{Label: "go"},
+		diff.ModifierKey{ButtonSetRID: "rid-go", FormIndex: 0}: entry("go", diff.Button{Label: "go"}),
 	}
 	newMods := diff.ModifierMap{}
 	result := diff.ComputeModifierDiff(oldMods, newMods)
 	if len(result.Removed) != 1 {
 		t.Fatalf("Removed: got %d, want 1", len(result.Removed))
 	}
-	if result.Removed[0].Key != (diff.ModifierKey{ButtonSetName: "go", FormIndex: 0}) {
+	if result.Removed[0].Key != (diff.ModifierKey{ButtonSetRID: "rid-go", FormIndex: 0}) {
 		t.Errorf("Removed key: got %+v", result.Removed[0].Key)
+	}
+	if result.Removed[0].ButtonSetName != "go" {
+		t.Errorf("Removed ButtonSetName: got %q, want 'go'", result.Removed[0].ButtonSetName)
 	}
 	if len(result.Added) != 0 || len(result.Modified) != 0 {
 		t.Errorf("expected no Added/Modified, got %+v", result)
@@ -44,13 +54,13 @@ func TestComputeModifierDiff_RemovedModifier(t *testing.T) {
 }
 
 func TestComputeModifierDiff_ModifiedModifier(t *testing.T) {
-	key := diff.ModifierKey{ButtonSetName: "good", FormIndex: 0}
+	key := diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0}
 	before := diff.Button{Label: "good", Pronunciation: ""}
 	after := diff.Button{Label: "good", Pronunciation: "good job kid"}
 
 	result := diff.ComputeModifierDiff(
-		diff.ModifierMap{key: before},
-		diff.ModifierMap{key: after},
+		diff.ModifierMap{key: entry("good", before)},
+		diff.ModifierMap{key: entry("good", after)},
 	)
 	if len(result.Modified) != 1 {
 		t.Fatalf("Modified: got %d, want 1", len(result.Modified))
@@ -58,6 +68,9 @@ func TestComputeModifierDiff_ModifiedModifier(t *testing.T) {
 	mc := result.Modified[0]
 	if mc.Key != key {
 		t.Errorf("Modified key: got %+v, want %+v", mc.Key, key)
+	}
+	if mc.ButtonSetName != "good" {
+		t.Errorf("Modified ButtonSetName: got %q, want 'good'", mc.ButtonSetName)
 	}
 	if mc.Before.Pronunciation != "" || mc.After.Pronunciation != "good job kid" {
 		t.Errorf("Modified Before/After pronunciation: %q / %q", mc.Before.Pronunciation, mc.After.Pronunciation)
@@ -68,11 +81,11 @@ func TestComputeModifierDiff_ModifiedModifier(t *testing.T) {
 }
 
 func TestComputeModifierDiff_UnchangedModifier(t *testing.T) {
-	key := diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0}
+	key := diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 0}
 	btn := diff.Button{Label: "eat", Visible: true}
 	result := diff.ComputeModifierDiff(
-		diff.ModifierMap{key: btn},
-		diff.ModifierMap{key: btn},
+		diff.ModifierMap{key: entry("eat", btn)},
+		diff.ModifierMap{key: entry("eat", btn)},
 	)
 	if len(result.Added)+len(result.Removed)+len(result.Modified) != 0 {
 		t.Errorf("expected no changes for identical modifiers, got %+v", result)
@@ -91,22 +104,20 @@ func TestComputeModifierDiff_EmptyMaps(t *testing.T) {
 func TestComputeModifierDiff_SortedByWordThenFormIndex(t *testing.T) {
 	oldMods := diff.ModifierMap{}
 	newMods := diff.ModifierMap{
-		diff.ModifierKey{ButtonSetName: "zebra", FormIndex: 0}: diff.Button{Label: "zebra"},
-		diff.ModifierKey{ButtonSetName: "apple", FormIndex: 6}: diff.Button{Label: "apple-6"},
-		diff.ModifierKey{ButtonSetName: "apple", FormIndex: 0}: diff.Button{Label: "apple-0"},
+		diff.ModifierKey{ButtonSetRID: "rid-zebra", FormIndex: 0}: entry("zebra", diff.Button{Label: "zebra"}),
+		diff.ModifierKey{ButtonSetRID: "rid-apple", FormIndex: 6}: entry("apple", diff.Button{Label: "apple-6"}),
+		diff.ModifierKey{ButtonSetRID: "rid-apple", FormIndex: 0}: entry("apple", diff.Button{Label: "apple-0"}),
 	}
 	result := diff.ComputeModifierDiff(oldMods, newMods)
 	if len(result.Added) != 3 {
 		t.Fatalf("Added: got %d, want 3", len(result.Added))
 	}
-	want := []diff.ModifierKey{
-		{ButtonSetName: "apple", FormIndex: 0},
-		{ButtonSetName: "apple", FormIndex: 6},
-		{ButtonSetName: "zebra", FormIndex: 0},
-	}
+	wantNames := []string{"apple", "apple", "zebra"}
+	wantForms := []int{0, 6, 0}
 	for i, got := range result.Added {
-		if got.Key != want[i] {
-			t.Errorf("Added[%d]: got %+v, want %+v", i, got.Key, want[i])
+		if got.ButtonSetName != wantNames[i] || got.Key.FormIndex != wantForms[i] {
+			t.Errorf("Added[%d]: got name=%q form=%d, want name=%q form=%d",
+				i, got.ButtonSetName, got.Key.FormIndex, wantNames[i], wantForms[i])
 		}
 	}
 }

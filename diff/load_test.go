@@ -136,18 +136,21 @@ func TestLoadModifiers_Basic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	key := ModifierKey{ButtonSetName: "good", FormIndex: 0}
-	btn, ok := mm[key]
+	key := ModifierKey{ButtonSetRID: "{rid-good-bs}", FormIndex: 0}
+	entry, ok := mm[key]
 	if !ok {
 		t.Fatalf("expected key %+v in ModifierMap; got %d entries", key, len(mm))
 	}
-	if btn.Label != "good" {
-		t.Errorf("Label: got %q, want 'good'", btn.Label)
+	if entry.Name != "good" {
+		t.Errorf("Name: got %q, want 'good'", entry.Name)
 	}
-	if btn.Message != "good job kid" {
-		t.Errorf("Message: got %q, want 'good job kid'", btn.Message)
+	if entry.Button.Label != "good" {
+		t.Errorf("Label: got %q, want 'good'", entry.Button.Label)
 	}
-	if !btn.Visible {
+	if entry.Button.Message != "good job kid" {
+		t.Errorf("Message: got %q, want 'good job kid'", entry.Button.Message)
+	}
+	if !entry.Button.Visible {
 		t.Error("Visible: expected true")
 	}
 }
@@ -163,9 +166,9 @@ func TestLoadModifiers_Pronunciation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	btn := mm[ModifierKey{ButtonSetName: "read", FormIndex: 0}]
-	if btn.Pronunciation != "reed" {
-		t.Errorf("Pronunciation: got %q, want 'reed'", btn.Pronunciation)
+	entry := mm[ModifierKey{ButtonSetRID: "{rid-read-bs}", FormIndex: 0}]
+	if entry.Button.Pronunciation != "reed" {
+		t.Errorf("Pronunciation: got %q, want 'reed'", entry.Button.Pronunciation)
 	}
 }
 
@@ -185,13 +188,13 @@ func TestLoadModifiers_MultipleFormsOfSameWord(t *testing.T) {
 	if len(mm) != 2 {
 		t.Errorf("expected 2 entries, got %d", len(mm))
 	}
-	if _, ok := mm[ModifierKey{"eat", 0}]; !ok {
+	if _, ok := mm[ModifierKey{ButtonSetRID: "{rid-eat-bs}", FormIndex: 0}]; !ok {
 		t.Error("missing form 0 for 'eat'")
 	}
-	if btn, ok := mm[ModifierKey{"eat", 6}]; !ok {
+	if entry, ok := mm[ModifierKey{ButtonSetRID: "{rid-eat-bs}", FormIndex: 6}]; !ok {
 		t.Error("missing form 6 for 'eat'")
-	} else if btn.Label != "eating" {
-		t.Errorf("form 6 label: got %q, want 'eating'", btn.Label)
+	} else if entry.Button.Label != "eating" {
+		t.Errorf("form 6 label: got %q, want 'eating'", entry.Button.Label)
 	}
 }
 
@@ -214,10 +217,10 @@ func TestLoadModifiers_MultipleDifferentWords(t *testing.T) {
 	if len(mm) != 2 {
 		t.Errorf("expected 2 entries (one per word), got %d", len(mm))
 	}
-	if _, ok := mm[ModifierKey{"go", 0}]; !ok {
+	if _, ok := mm[ModifierKey{ButtonSetRID: "{rid-go-bs}", FormIndex: 0}]; !ok {
 		t.Error("missing key {go, 0}")
 	}
-	if _, ok := mm[ModifierKey{"eat", 0}]; !ok {
+	if _, ok := mm[ModifierKey{ButtonSetRID: "{rid-eat-bs}", FormIndex: 0}]; !ok {
 		t.Error("missing key {eat, 0}")
 	}
 }

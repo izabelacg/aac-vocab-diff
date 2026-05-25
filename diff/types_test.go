@@ -9,13 +9,14 @@ import (
 // TestModifierTypes_Exist is a compile-time guardrail: it will fail to build
 // until all four types related to ModifierSetDiff are present in types.go.
 func TestModifierTypes_Exist(t *testing.T) {
-	key := diff.ModifierKey{ButtonSetName: "good", FormIndex: 0}
-	if key.ButtonSetName != "good" || key.FormIndex != 0 {
+	key := diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0}
+	if key.ButtonSetRID != "rid-good" || key.FormIndex != 0 {
 		t.Errorf("ModifierKey fields: got %+v", key)
 	}
 
 	mc := diff.ModifierChange{
 		Key:           key,
+		ButtonSetName: "good",
 		Before:        diff.Button{Label: "good"},
 		After:         diff.Button{Label: "good", Pronunciation: "good job kid"},
 	}

@@ -376,9 +376,10 @@ func TestNewHTMLData_WordFormChanges_SectionPresent(t *testing.T) {
 	d := diff.Diff{
 		WordFormChanges: diff.ModifierSetDiff{
 			Modified: []diff.ModifierChange{{
-				Key:    diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
-				Before: diff.Button{Label: "good"},
-				After:  diff.Button{Label: "good", Pronunciation: "good job kid"},
+				Key:           diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0},
+				ButtonSetName: "good",
+				Before:        diff.Button{Label: "good"},
+				After:         diff.Button{Label: "good", Pronunciation: "good job kid"},
 			}},
 		},
 	}
@@ -393,8 +394,8 @@ func TestNewHTMLData_WordFormChanges_OneCardPerWord(t *testing.T) {
 	d := diff.Diff{
 		WordFormChanges: diff.ModifierSetDiff{
 			Added: []diff.ModifierChange{
-				{Key: diff.ModifierKey{ButtonSetName: "good", FormIndex: 0}, After: diff.Button{Label: "good"}},
-				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0}, After: diff.Button{Label: "eat"}},
+				{Key: diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0}, ButtonSetName: "good", After: diff.Button{Label: "good"}},
+				{Key: diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 0}, ButtonSetName: "eat", After: diff.Button{Label: "eat"}},
 			},
 		},
 	}
@@ -413,8 +414,8 @@ func TestNewHTMLData_WordFormChanges_MultipleFormsGroupedInOneCard(t *testing.T)
 	d := diff.Diff{
 		WordFormChanges: diff.ModifierSetDiff{
 			Modified: []diff.ModifierChange{
-				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0}, Before: diff.Button{}, After: diff.Button{Pronunciation: "x"}},
-				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 6}, Before: diff.Button{}, After: diff.Button{Pronunciation: "y"}},
+				{Key: diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 0}, ButtonSetName: "eat", Before: diff.Button{}, After: diff.Button{Pronunciation: "x"}},
+				{Key: diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 6}, ButtonSetName: "eat", Before: diff.Button{}, After: diff.Button{Pronunciation: "y"}},
 			},
 		},
 	}
@@ -435,8 +436,9 @@ func TestNewHTMLData_WordFormChanges_AddedRowKind(t *testing.T) {
 	d := diff.Diff{
 		WordFormChanges: diff.ModifierSetDiff{
 			Added: []diff.ModifierChange{{
-				Key:   diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
-				After: diff.Button{Label: "good"},
+				Key:           diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0},
+				ButtonSetName: "good",
+				After:         diff.Button{Label: "good"},
 			}},
 		},
 	}
@@ -455,8 +457,9 @@ func TestNewHTMLData_WordFormChanges_RemovedRowKind(t *testing.T) {
 	d := diff.Diff{
 		WordFormChanges: diff.ModifierSetDiff{
 			Removed: []diff.ModifierChange{{
-				Key:    diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0},
-				Before: diff.Button{Label: "eat"},
+				Key:           diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 0},
+				ButtonSetName: "eat",
+				Before:        diff.Button{Label: "eat"},
 			}},
 		},
 	}
@@ -475,9 +478,10 @@ func TestNewHTMLData_WordFormChanges_ModifiedRowKind(t *testing.T) {
 	d := diff.Diff{
 		WordFormChanges: diff.ModifierSetDiff{
 			Modified: []diff.ModifierChange{{
-				Key:    diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
-				Before: diff.Button{},
-				After:  diff.Button{Pronunciation: "x"},
+				Key:           diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0},
+				ButtonSetName: "good",
+				Before:        diff.Button{},
+				After:         diff.Button{Pronunciation: "x"},
 			}},
 		},
 	}
@@ -497,8 +501,8 @@ func TestNewHTMLData_WordFormChanges_RowLabelIsFormLabel(t *testing.T) {
 	d := diff.Diff{
 		WordFormChanges: diff.ModifierSetDiff{
 			Added: []diff.ModifierChange{
-				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0}, After: diff.Button{}},
-				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 6}, After: diff.Button{}},
+				{Key: diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 0}, ButtonSetName: "eat", After: diff.Button{}},
+				{Key: diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 6}, ButtonSetName: "eat", After: diff.Button{}},
 			},
 		},
 	}
@@ -521,9 +525,10 @@ func TestWriteHTML_WordFormChanges_RendersWordName(t *testing.T) {
 	d := diff.Diff{
 		WordFormChanges: diff.ModifierSetDiff{
 			Modified: []diff.ModifierChange{{
-				Key:    diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
-				Before: diff.Button{},
-				After:  diff.Button{Pronunciation: "good job kid"},
+				Key:           diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0},
+				ButtonSetName: "good",
+				Before:        diff.Button{},
+				After:         diff.Button{Pronunciation: "good job kid"},
 			}},
 		},
 	}

@@ -86,15 +86,15 @@ func PrintDiff(d diff.Diff) {
 	if total > 0 {
 		fmt.Printf("WORD-FORM CHANGES (%d):\n\n", total)
 		for _, mc := range wfc.Added {
-			fmt.Printf("  Word form: %s (%s)\n", mc.Key.ButtonSetName, formLabel(mc.Key.FormIndex))
+			fmt.Printf("  Word form: %s (%s)\n", mc.ButtonSetName, formLabel(mc.Key.FormIndex))
 			fmt.Println(formatButton("+", mc.After, "speaks"))
 		}
 		for _, mc := range wfc.Removed {
-			fmt.Printf("  Word form: %s (%s)\n", mc.Key.ButtonSetName, formLabel(mc.Key.FormIndex))
+			fmt.Printf("  Word form: %s (%s)\n", mc.ButtonSetName, formLabel(mc.Key.FormIndex))
 			fmt.Println(formatButton("-", mc.Before, "spoke"))
 		}
 		for _, mc := range wfc.Modified {
-			fmt.Printf("  Word form: %s (%s)\n", mc.Key.ButtonSetName, formLabel(mc.Key.FormIndex))
+			fmt.Printf("  Word form: %s (%s)\n", mc.ButtonSetName, formLabel(mc.Key.FormIndex))
 			fmt.Printf("    ~ (modified)\n")
 			if mc.Before.Pronunciation != mc.After.Pronunciation {
 				fmt.Printf("        pronunciation: %s → %s\n",

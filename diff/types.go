@@ -147,18 +147,32 @@ type ButtonChange struct {
 }
 
 // ModifierKey uniquely identifies one form of one word in the button-set system.
-// ButtonSetName is the word label (e.g. "good"); FormIndex is the modifier
-// integer stored in button_set_modifiers.modifier (0 = base form).
+// ButtonSetRID is resources.rid — the stable GUID that is unique per button_set
+// row (unlike resources.name, which is reused across many button sets).
+// FormIndex is the modifier integer stored in button_set_modifiers.modifier
+// (0 = base form).
 type ModifierKey struct {
-	ButtonSetName string
-	FormIndex     int
+	ButtonSetRID string
+	FormIndex    int
+}
+
+// ModifierEntry pairs a display name with its Button so the map value carries
+// both the word label (for human-readable output) and the diffable fields.
+// The Name comes from resources.name and is only used for display; identity
+// is determined solely by the ModifierKey (RID + FormIndex).
+type ModifierEntry struct {
+	Name   string // resources.name — display label, e.g. "good"
+	Button Button
 }
 
 // ModifierChange records a single logical edit to a word-form modifier button.
+// ButtonSetName is the human-readable word label copied from ModifierEntry.Name
+// at diff time; it is kept here so reporters don't need access to the source maps.
 type ModifierChange struct {
-	Key    ModifierKey
-	Before Button // reuse Button — same five diffable fields
-	After  Button
+	Key           ModifierKey
+	ButtonSetName string // display name, e.g. "good"
+	Before        Button // reuse Button — same five diffable fields
+	After         Button
 }
 
 // ModifierSetDiff summarises all modifier-button changes across the vocab.

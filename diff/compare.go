@@ -140,34 +140,34 @@ func ComputeDiff(oldBtns, newBtns ButtonMap, oldPages, newPages PageSet) Diff {
 func computeModifierDiff(old, new ModifierMap) ModifierSetDiff {
 	var added, removed, modified []ModifierChange
 
-	for key, newBtn := range new {
-		if oldBtn, ok := old[key]; !ok {
-			added = append(added, ModifierChange{Key: key, After: newBtn})
-		} else if oldBtn.Fingerprint() != newBtn.Fingerprint() {
-			modified = append(modified, ModifierChange{Key: key, Before: oldBtn, After: newBtn})
+	for key, newEntry := range new {
+		if oldEntry, ok := old[key]; !ok {
+			added = append(added, ModifierChange{Key: key, ButtonSetName: newEntry.Name, After: newEntry.Button})
+		} else if oldEntry.Button.Fingerprint() != newEntry.Button.Fingerprint() {
+			modified = append(modified, ModifierChange{Key: key, ButtonSetName: oldEntry.Name, Before: oldEntry.Button, After: newEntry.Button})
 		}
 	}
-	for key, oldBtn := range old {
+	for key, oldEntry := range old {
 		if _, ok := new[key]; !ok {
-			removed = append(removed, ModifierChange{Key: key, Before: oldBtn})
+			removed = append(removed, ModifierChange{Key: key, ButtonSetName: oldEntry.Name, Before: oldEntry.Button})
 		}
 	}
 
 	sort.Slice(added, func(i, j int) bool {
-		if added[i].Key.ButtonSetName != added[j].Key.ButtonSetName {
-			return added[i].Key.ButtonSetName < added[j].Key.ButtonSetName
+		if added[i].ButtonSetName != added[j].ButtonSetName {
+			return added[i].ButtonSetName < added[j].ButtonSetName
 		}
 		return added[i].Key.FormIndex < added[j].Key.FormIndex
 	})
 	sort.Slice(removed, func(i, j int) bool {
-		if removed[i].Key.ButtonSetName != removed[j].Key.ButtonSetName {
-			return removed[i].Key.ButtonSetName < removed[j].Key.ButtonSetName
+		if removed[i].ButtonSetName != removed[j].ButtonSetName {
+			return removed[i].ButtonSetName < removed[j].ButtonSetName
 		}
 		return removed[i].Key.FormIndex < removed[j].Key.FormIndex
 	})
 	sort.Slice(modified, func(i, j int) bool {
-		if modified[i].Key.ButtonSetName != modified[j].Key.ButtonSetName {
-			return modified[i].Key.ButtonSetName < modified[j].Key.ButtonSetName
+		if modified[i].ButtonSetName != modified[j].ButtonSetName {
+			return modified[i].ButtonSetName < modified[j].ButtonSetName
 		}
 		return modified[i].Key.FormIndex < modified[j].Key.FormIndex
 	})

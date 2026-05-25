@@ -37,6 +37,7 @@ ORDER BY a.resource_id, a.rank, ad.key
 
 const modifierQuery = `
 SELECT r.name       AS button_set_name,
+       r.rid        AS button_set_rid,
        bsm.modifier AS form_index,
        b.resource_id,
        b.label,
@@ -50,8 +51,8 @@ JOIN resources r    ON r.id      = bs.resource_id
 ORDER BY r.name, bsm.modifier
 `
 
-// ModifierMap keys a Button by its (ButtonSetName, FormIndex) pair.
-type ModifierMap = map[ModifierKey]Button
+// ModifierMap keys a ModifierEntry by its (ButtonSetRID, FormIndex) pair.
+type ModifierMap = map[ModifierKey]ModifierEntry
 
 var actionLabels = map[int]string{
 	3:  "speak",
@@ -232,13 +233,14 @@ func loadModifiers(db *sql.DB) (ModifierMap, error) {
 	for mRows.Next() {
 		var (
 			name          string
+			bsRID         string // resources.rid — stable GUID, unique per button_set
 			formIndex     int
-			rid           int
+			resourceID    int // b.resource_id — used for action lookup
 			label, msg    sql.NullString
 			visible       int
 			pronunciation sql.NullString
 		)
-		if err := mRows.Scan(&name, &formIndex, &rid,
+		if err := mRows.Scan(&name, &bsRID, &formIndex, &resourceID,
 			&label, &msg, &visible, &pronunciation); err != nil {
 			return nil, err
 		}
@@ -247,9 +249,9 @@ func loadModifiers(db *sql.DB) (ModifierMap, error) {
 			Message:       msg.String,
 			Visible:       visible == 1,
 			Pronunciation: pronunciation.String,
-			Actions:       buildActionSummary(actionsByRID[rid]),
+			Actions:       buildActionSummary(actionsByRID[resourceID]),
 		}
-		mm[ModifierKey{ButtonSetName: name, FormIndex: formIndex}] = btn
+		mm[ModifierKey{ButtonSetRID: bsRID, FormIndex: formIndex}] = ModifierEntry{Name: name, Button: btn}
 	}
 	return mm, mRows.Err()
 }
