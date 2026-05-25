@@ -35,12 +35,30 @@ LEFT JOIN resources r_target ON r_target.rid = ad.value
 ORDER BY a.resource_id, a.rank, ad.key
 `
 
+const modifierQuery = `
+SELECT r.name       AS button_set_name,
+       bsm.modifier AS form_index,
+       b.resource_id,
+       b.label,
+       b.message,
+       b.visible,
+       b.pronunciation
+FROM button_set_modifiers bsm
+JOIN buttons b      ON b.id      = bsm.button_id
+JOIN button_sets bs ON bs.id     = bsm.button_set_id
+JOIN resources r    ON r.id      = bs.resource_id
+ORDER BY r.name, bsm.modifier
+`
+
+// ModifierMap keys a Button by its (ButtonSetName, FormIndex) pair.
+type ModifierMap = map[ModifierKey]Button
+
 var actionLabels = map[int]string{
 	3:  "speak",
 	4:  "play sound",
 	5:  "record",
 	6:  "navigate back",
-	8:  "visit / navigate",
+	8:  "navigate to page",
 	9:  "navigate to page",
 	10: "speak (auto)",
 	16: "punctuation",
@@ -62,7 +80,7 @@ var actionLabels = map[int]string{
 	68: "share text",
 	70: "open app",
 	71: "word form",
-	73: "visit / navigate",
+	73: "navigate to page",
 	74: "find word",
 	77: "clear all",
 	82: "send to display",
@@ -179,6 +197,61 @@ func loadButtons(db *sql.DB) (ButtonMap, error) {
 		bm[page][btn.Fingerprint()] = btn
 	}
 	return bm, bRows.Err()
+}
+
+// loadModifiers queries the DB and returns every word-form modifier button.
+func loadModifiers(db *sql.DB) (ModifierMap, error) {
+	// Same two-phase pattern as loadButtons:
+	// first load all actions, then scan modifier rows.
+	aRows, err := db.Query(actionsQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer aRows.Close()
+
+	actionsByRID := map[int][]actionRow{}
+	for aRows.Next() {
+		var ar actionRow
+		if err := aRows.Scan(&ar.resourceID, &ar.rank, &ar.code,
+			&ar.key, &ar.value, &ar.targetName); err != nil {
+			return nil, err
+		}
+		actionsByRID[ar.resourceID] = append(actionsByRID[ar.resourceID], ar)
+	}
+	if err := aRows.Err(); err != nil {
+		return nil, err
+	}
+
+	mRows, err := db.Query(modifierQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer mRows.Close()
+
+	mm := ModifierMap{}
+	for mRows.Next() {
+		var (
+			name          string
+			formIndex     int
+			rid           int
+			label, msg    sql.NullString
+			visible       int
+			pronunciation sql.NullString
+		)
+		if err := mRows.Scan(&name, &formIndex, &rid,
+			&label, &msg, &visible, &pronunciation); err != nil {
+			return nil, err
+		}
+		btn := Button{
+			Label:         label.String,
+			Message:       msg.String,
+			Visible:       visible == 1,
+			Pronunciation: pronunciation.String,
+			Actions:       buildActionSummary(actionsByRID[rid]),
+		}
+		mm[ModifierKey{ButtonSetName: name, FormIndex: formIndex}] = btn
+	}
+	return mm, mRows.Err()
 }
 
 func navigateDestination(targetName, value, vocab string) string {

@@ -106,3 +106,118 @@ func TestLoadButtons_EmptyLabelAndMessageSkipped(t *testing.T) {
 		t.Errorf("empty button should be filtered; got %d buttons", len(bm["Home"]))
 	}
 }
+
+// Fixture IDs used below start at 10 (resources) and 20 (buttons) to avoid
+// collisions with the page/button-box data inserted by newTestDB.
+
+func TestLoadModifiers_EmptyDB(t *testing.T) {
+	db := newTestDB(t) // no button_sets or button_set_modifiers rows
+	mm, err := loadModifiers(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(mm) != 0 {
+		t.Errorf("expected empty ModifierMap, got %d entries", len(mm))
+	}
+}
+
+func TestLoadModifiers_Basic(t *testing.T) {
+	db := newTestDB(t)
+	// Word "good" as a button-set resource; resource type does not matter for
+	// the modifier query — only resources.name (the word label) is selected.
+	mustExec(t, db, `INSERT INTO resources VALUES (10,'{rid-good-bs}','good',5)`)
+	mustExec(t, db, `INSERT INTO button_sets VALUES (1,10)`)
+	// Modifier button: buttons.id=20 is what button_set_modifiers.button_id references.
+	// buttons.resource_id=21 is what actionsQuery uses for action lookup.
+	mustExec(t, db, `INSERT INTO buttons VALUES (20,21,'good','good job kid',1,'')`)
+	mustExec(t, db, `INSERT INTO button_set_modifiers VALUES (1,1,20,0)`)
+
+	mm, err := loadModifiers(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := ModifierKey{ButtonSetName: "good", FormIndex: 0}
+	btn, ok := mm[key]
+	if !ok {
+		t.Fatalf("expected key %+v in ModifierMap; got %d entries", key, len(mm))
+	}
+	if btn.Label != "good" {
+		t.Errorf("Label: got %q, want 'good'", btn.Label)
+	}
+	if btn.Message != "good job kid" {
+		t.Errorf("Message: got %q, want 'good job kid'", btn.Message)
+	}
+	if !btn.Visible {
+		t.Error("Visible: expected true")
+	}
+}
+
+func TestLoadModifiers_Pronunciation(t *testing.T) {
+	db := newTestDB(t)
+	mustExec(t, db, `INSERT INTO resources VALUES (10,'{rid-read-bs}','read',5)`)
+	mustExec(t, db, `INSERT INTO button_sets VALUES (1,10)`)
+	mustExec(t, db, `INSERT INTO buttons VALUES (20,21,'read','',1,'reed')`)
+	mustExec(t, db, `INSERT INTO button_set_modifiers VALUES (1,1,20,0)`)
+
+	mm, err := loadModifiers(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	btn := mm[ModifierKey{ButtonSetName: "read", FormIndex: 0}]
+	if btn.Pronunciation != "reed" {
+		t.Errorf("Pronunciation: got %q, want 'reed'", btn.Pronunciation)
+	}
+}
+
+func TestLoadModifiers_MultipleFormsOfSameWord(t *testing.T) {
+	db := newTestDB(t)
+	mustExec(t, db, `INSERT INTO resources VALUES (10,'{rid-eat-bs}','eat',5)`)
+	mustExec(t, db, `INSERT INTO button_sets VALUES (1,10)`)
+	mustExec(t, db, `INSERT INTO buttons VALUES (20,21,'eat','',1,'')`)
+	mustExec(t, db, `INSERT INTO buttons VALUES (21,22,'eating','',1,'')`)
+	mustExec(t, db, `INSERT INTO button_set_modifiers VALUES (1,1,20,0)`)
+	mustExec(t, db, `INSERT INTO button_set_modifiers VALUES (2,1,21,6)`)
+
+	mm, err := loadModifiers(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(mm) != 2 {
+		t.Errorf("expected 2 entries, got %d", len(mm))
+	}
+	if _, ok := mm[ModifierKey{"eat", 0}]; !ok {
+		t.Error("missing form 0 for 'eat'")
+	}
+	if btn, ok := mm[ModifierKey{"eat", 6}]; !ok {
+		t.Error("missing form 6 for 'eat'")
+	} else if btn.Label != "eating" {
+		t.Errorf("form 6 label: got %q, want 'eating'", btn.Label)
+	}
+}
+
+func TestLoadModifiers_MultipleDifferentWords(t *testing.T) {
+	db := newTestDB(t)
+	mustExec(t, db, `INSERT INTO resources VALUES (10,'{rid-go-bs}','go',5)`)
+	mustExec(t, db, `INSERT INTO button_sets VALUES (1,10)`)
+	mustExec(t, db, `INSERT INTO buttons VALUES (20,21,'go','',1,'')`)
+	mustExec(t, db, `INSERT INTO button_set_modifiers VALUES (1,1,20,0)`)
+
+	mustExec(t, db, `INSERT INTO resources VALUES (11,'{rid-eat-bs}','eat',5)`)
+	mustExec(t, db, `INSERT INTO button_sets VALUES (2,11)`)
+	mustExec(t, db, `INSERT INTO buttons VALUES (21,22,'eat','',1,'')`)
+	mustExec(t, db, `INSERT INTO button_set_modifiers VALUES (2,2,21,0)`)
+
+	mm, err := loadModifiers(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(mm) != 2 {
+		t.Errorf("expected 2 entries (one per word), got %d", len(mm))
+	}
+	if _, ok := mm[ModifierKey{"go", 0}]; !ok {
+		t.Error("missing key {go, 0}")
+	}
+	if _, ok := mm[ModifierKey{"eat", 0}]; !ok {
+		t.Error("missing key {eat, 0}")
+	}
+}
