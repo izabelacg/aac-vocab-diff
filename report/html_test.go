@@ -352,3 +352,188 @@ func TestWriteHTML_NoNavPath_NoPagePathClass(t *testing.T) {
 		t.Error("page-path element should not appear when no nav path is set")
 	}
 }
+
+// ── Word-form modifier section ──────────────────────────────────────
+
+// findWordFormSection returns the HTMLSection whose title contains "word" (case-insensitive).
+func findWordFormSection(sections []report.HTMLSection) (report.HTMLSection, bool) {
+	for _, s := range sections {
+		if strings.Contains(strings.ToLower(s.Title), "word") {
+			return s, true
+		}
+	}
+	return report.HTMLSection{}, false
+}
+
+func TestNewHTMLData_WordFormChanges_NoSectionWhenEmpty(t *testing.T) {
+	data := report.NewHTMLData(diff.Diff{OldLabel: "a.ce", NewLabel: "b.ce"})
+	if _, ok := findWordFormSection(data.Sections); ok {
+		t.Error("expected no word-form section when WordFormChanges is empty")
+	}
+}
+
+func TestNewHTMLData_WordFormChanges_SectionPresent(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Modified: []diff.ModifierChange{{
+				Key:    diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
+				Before: diff.Button{Label: "good"},
+				After:  diff.Button{Label: "good", Pronunciation: "good job kid"},
+			}},
+		},
+	}
+	data := report.NewHTMLData(d)
+	if _, ok := findWordFormSection(data.Sections); !ok {
+		t.Error("expected a word-form section in HTMLData.Sections when WordFormChanges is non-empty")
+	}
+}
+
+// Each distinct ButtonSetName should produce its own card.
+func TestNewHTMLData_WordFormChanges_OneCardPerWord(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Added: []diff.ModifierChange{
+				{Key: diff.ModifierKey{ButtonSetName: "good", FormIndex: 0}, After: diff.Button{Label: "good"}},
+				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0}, After: diff.Button{Label: "eat"}},
+			},
+		},
+	}
+	data := report.NewHTMLData(d)
+	sec, ok := findWordFormSection(data.Sections)
+	if !ok {
+		t.Fatal("word-form section missing")
+	}
+	if len(sec.Cards) != 2 {
+		t.Errorf("expected 2 cards (one per word), got %d", len(sec.Cards))
+	}
+}
+
+// Multiple forms of the same word must be grouped into one card.
+func TestNewHTMLData_WordFormChanges_MultipleFormsGroupedInOneCard(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Modified: []diff.ModifierChange{
+				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0}, Before: diff.Button{}, After: diff.Button{Pronunciation: "x"}},
+				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 6}, Before: diff.Button{}, After: diff.Button{Pronunciation: "y"}},
+			},
+		},
+	}
+	data := report.NewHTMLData(d)
+	sec, ok := findWordFormSection(data.Sections)
+	if !ok {
+		t.Fatal("word-form section missing")
+	}
+	if len(sec.Cards) != 1 {
+		t.Errorf("expected 1 card for 'eat' (both forms grouped), got %d", len(sec.Cards))
+	}
+	if len(sec.Cards[0].Rows) != 2 {
+		t.Errorf("expected 2 rows for 2 forms of 'eat', got %d", len(sec.Cards[0].Rows))
+	}
+}
+
+func TestNewHTMLData_WordFormChanges_AddedRowKind(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Added: []diff.ModifierChange{{
+				Key:   diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
+				After: diff.Button{Label: "good"},
+			}},
+		},
+	}
+	data := report.NewHTMLData(d)
+	sec, _ := findWordFormSection(data.Sections)
+	if len(sec.Cards) == 0 || len(sec.Cards[0].Rows) == 0 {
+		t.Fatal("expected at least one card with one row")
+	}
+	row := sec.Cards[0].Rows[0]
+	if row.Kind != "btn-added" {
+		t.Errorf("added modifier row Kind: got %q, want 'btn-added'", row.Kind)
+	}
+}
+
+func TestNewHTMLData_WordFormChanges_RemovedRowKind(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Removed: []diff.ModifierChange{{
+				Key:    diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0},
+				Before: diff.Button{Label: "eat"},
+			}},
+		},
+	}
+	data := report.NewHTMLData(d)
+	sec, _ := findWordFormSection(data.Sections)
+	if len(sec.Cards) == 0 || len(sec.Cards[0].Rows) == 0 {
+		t.Fatal("expected at least one card with one row")
+	}
+	row := sec.Cards[0].Rows[0]
+	if row.Kind != "btn-removed" {
+		t.Errorf("removed modifier row Kind: got %q, want 'btn-removed'", row.Kind)
+	}
+}
+
+func TestNewHTMLData_WordFormChanges_ModifiedRowKind(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Modified: []diff.ModifierChange{{
+				Key:    diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
+				Before: diff.Button{},
+				After:  diff.Button{Pronunciation: "x"},
+			}},
+		},
+	}
+	data := report.NewHTMLData(d)
+	sec, _ := findWordFormSection(data.Sections)
+	if len(sec.Cards) == 0 || len(sec.Cards[0].Rows) == 0 {
+		t.Fatal("expected at least one card with one row")
+	}
+	row := sec.Cards[0].Rows[0]
+	if row.Kind != "btn-modified" {
+		t.Errorf("modified modifier row Kind: got %q, want 'btn-modified'", row.Kind)
+	}
+}
+
+// The row Label should identify the form (e.g. "base" for index 0, "form #6" for 6).
+func TestNewHTMLData_WordFormChanges_RowLabelIsFormLabel(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Added: []diff.ModifierChange{
+				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 0}, After: diff.Button{}},
+				{Key: diff.ModifierKey{ButtonSetName: "eat", FormIndex: 6}, After: diff.Button{}},
+			},
+		},
+	}
+	data := report.NewHTMLData(d)
+	sec, _ := findWordFormSection(data.Sections)
+	rows := sec.Cards[0].Rows
+	if len(rows) < 2 {
+		t.Fatalf("expected 2 rows, got %d", len(rows))
+	}
+	if rows[0].Label != "base" {
+		t.Errorf("row[0].Label: got %q, want 'base'", rows[0].Label)
+	}
+	if rows[1].Label != "form #6" {
+		t.Errorf("row[1].Label: got %q, want 'form #6'", rows[1].Label)
+	}
+}
+
+// Verify that the word-form section actually appears in rendered HTML.
+func TestWriteHTML_WordFormChanges_RendersWordName(t *testing.T) {
+	d := diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Modified: []diff.ModifierChange{{
+				Key:    diff.ModifierKey{ButtonSetName: "good", FormIndex: 0},
+				Before: diff.Button{},
+				After:  diff.Button{Pronunciation: "good job kid"},
+			}},
+		},
+	}
+	var sb strings.Builder
+	_ = report.WriteHTML(&sb, report.NewHTMLData(d))
+	out := sb.String()
+	if !strings.Contains(out, "good") {
+		t.Error("expected word name 'good' in rendered HTML")
+	}
+	if !strings.Contains(out, "good job kid") {
+		t.Error("expected pronunciation 'good job kid' in rendered HTML")
+	}
+}

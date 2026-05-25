@@ -156,6 +156,47 @@ func NewHTMLData(d diff.Diff) HTMLData {
 		data.Sections = append(data.Sections, sec)
 	}
 
+	wfc := d.WordFormChanges
+	if len(wfc.Added)+len(wfc.Removed)+len(wfc.Modified) > 0 {
+		sec := HTMLSection{Title: "Word-form changes"}
+		// Group all changes by ButtonSetName. The slices are already sorted
+		// by (ButtonSetName, FormIndex), so we can walk them linearly.
+		cards := map[string]*HTMLCard{}
+		order := []string{} // preserve insertion order for deterministic output
+
+		addRow := func(name string, row HTMLRow) {
+			if _, exists := cards[name]; !exists {
+				cards[name] = &HTMLCard{Name: name, Kind: "changed"}
+				order = append(order, name)
+			}
+			cards[name].Rows = append(cards[name].Rows, row)
+		}
+
+		for _, mc := range wfc.Added {
+			btn := mc.After
+			btn.Label = formLabel(mc.Key.FormIndex) // repurpose Label as the form identifier
+			addRow(mc.Key.ButtonSetName, addedRow(btn))
+		}
+		for _, mc := range wfc.Removed {
+			btn := mc.Before
+			btn.Label = formLabel(mc.Key.FormIndex)
+			addRow(mc.Key.ButtonSetName, removedRow(btn))
+		}
+		for _, mc := range wfc.Modified {
+			row := modifiedRow(diff.ButtonChange{
+				Key:    diff.ButtonKey{Label: formLabel(mc.Key.FormIndex)},
+				Before: mc.Before,
+				After:  mc.After,
+			})
+			addRow(mc.Key.ButtonSetName, row)
+		}
+
+		for _, name := range order {
+			sec.Cards = append(sec.Cards, *cards[name])
+		}
+		data.Sections = append(data.Sections, sec)
+	}
+
 	return data
 }
 
