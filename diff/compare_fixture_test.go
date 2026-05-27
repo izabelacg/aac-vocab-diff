@@ -3,6 +3,7 @@ package diff_test
 import (
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/izabelacg/aac-vocab-diff/diff"
@@ -91,10 +92,15 @@ func TestCompareFixtures_PageChanges_Activities_MathGainedNavigateAction(t *test
 	if mc.Key.Label != "math" {
 		t.Errorf("modified button label: got %q, want 'math'", mc.Key.Label)
 	}
-	if slices.Contains(mc.Before.Actions, "navigate to page") {
+	hasNavigate := func(actions []string) bool {
+		return slices.ContainsFunc(actions, func(a string) bool {
+			return strings.HasPrefix(a, "navigate to page")
+		})
+	}
+	if hasNavigate(mc.Before.Actions) {
 		t.Error("'navigate to page' should NOT be in Before.Actions — it was added in the new file")
 	}
-	if !slices.Contains(mc.After.Actions, "navigate to page") {
+	if !hasNavigate(mc.After.Actions) {
 		t.Error("'navigate to page' should be in After.Actions")
 	}
 }
