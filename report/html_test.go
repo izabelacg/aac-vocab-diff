@@ -496,13 +496,13 @@ func TestNewHTMLData_WordFormChanges_ModifiedRowKind(t *testing.T) {
 	}
 }
 
-// The row Label should identify the form (e.g. "base" for index 0, "form #6" for 6).
-func TestNewHTMLData_WordFormChanges_RowLabelIsFormLabel(t *testing.T) {
+// The row Label should be the actual button text, not the form index identifier.
+func TestNewHTMLData_WordFormChanges_RowLabelIsButtonLabel(t *testing.T) {
 	d := diff.Diff{
 		WordFormChanges: diff.ModifierSetDiff{
 			Added: []diff.ModifierChange{
-				{Key: diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 0}, ButtonSetName: "eat", After: diff.Button{}},
-				{Key: diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 6}, ButtonSetName: "eat", After: diff.Button{}},
+				{Key: diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 0}, ButtonSetName: "eat", After: diff.Button{Label: "eat"}},
+				{Key: diff.ModifierKey{ButtonSetRID: "rid-eat", FormIndex: 6}, ButtonSetName: "eat", After: diff.Button{Label: "eating"}},
 			},
 		},
 	}
@@ -512,11 +512,11 @@ func TestNewHTMLData_WordFormChanges_RowLabelIsFormLabel(t *testing.T) {
 	if len(rows) < 2 {
 		t.Fatalf("expected 2 rows, got %d", len(rows))
 	}
-	if rows[0].Label != "base" {
-		t.Errorf("row[0].Label: got %q, want 'base'", rows[0].Label)
+	if rows[0].Label != "eat (base)" {
+		t.Errorf("row[0].Label: got %q, want 'eat (base)'", rows[0].Label)
 	}
-	if rows[1].Label != "form #6" {
-		t.Errorf("row[1].Label: got %q, want 'form #6'", rows[1].Label)
+	if rows[1].Label != "eating (form #6)" {
+		t.Errorf("row[1].Label: got %q, want 'eating (form #6)'", rows[1].Label)
 	}
 }
 

@@ -35,6 +35,18 @@ LEFT JOIN resources r_target ON r_target.rid = ad.value
 ORDER BY a.resource_id, a.rank, ad.key
 `
 
+const buttonSetPagesQuery = `
+SELECT r_bs.rid AS bs_rid, r_page.name AS page_name
+FROM button_sets bs
+JOIN resources r_bs       ON r_bs.id = bs.resource_id
+JOIN button_box_cells bbc ON bbc.resource_id = bs.resource_id
+JOIN button_boxes bb      ON bb.id = bbc.button_box_id
+JOIN button_box_instances bbi ON bbi.button_box_id = bb.id
+JOIN pages p              ON p.id = bbi.page_id
+JOIN resources r_page     ON r_page.id = p.resource_id AND r_page.type = 7
+ORDER BY r_bs.rid, r_page.name
+`
+
 const modifierQuery = `
 SELECT r.name       AS button_set_name,
        r.rid        AS button_set_rid,
@@ -202,8 +214,26 @@ func loadButtons(db *sql.DB) (ButtonMap, error) {
 
 // loadModifiers queries the DB and returns every word-form modifier button.
 func loadModifiers(db *sql.DB) (ModifierMap, error) {
-	// Same two-phase pattern as loadButtons:
-	// first load all actions, then scan modifier rows.
+	// Build bs_rid → []page_name map from button_box placement.
+	pRows, err := db.Query(buttonSetPagesQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer pRows.Close()
+
+	pagesByRID := map[string][]string{}
+	for pRows.Next() {
+		var bsRID, pageName string
+		if err := pRows.Scan(&bsRID, &pageName); err != nil {
+			return nil, err
+		}
+		pagesByRID[bsRID] = append(pagesByRID[bsRID], pageName)
+	}
+	if err := pRows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Load actions (same pattern as loadButtons).
 	aRows, err := db.Query(actionsQuery)
 	if err != nil {
 		return nil, err
@@ -223,6 +253,7 @@ func loadModifiers(db *sql.DB) (ModifierMap, error) {
 		return nil, err
 	}
 
+	// Scan modifier rows and assemble the map.
 	mRows, err := db.Query(modifierQuery)
 	if err != nil {
 		return nil, err
@@ -251,7 +282,11 @@ func loadModifiers(db *sql.DB) (ModifierMap, error) {
 			Pronunciation: pronunciation.String,
 			Actions:       buildActionSummary(actionsByRID[resourceID]),
 		}
-		mm[ModifierKey{ButtonSetRID: bsRID, FormIndex: formIndex}] = ModifierEntry{Name: name, Button: btn}
+		mm[ModifierKey{ButtonSetRID: bsRID, FormIndex: formIndex}] = ModifierEntry{
+			Name:   name,
+			Pages:  pagesByRID[bsRID], // nil when button set has no page placement
+			Button: btn,
+		}
 	}
 	return mm, mRows.Err()
 }

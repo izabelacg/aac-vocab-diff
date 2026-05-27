@@ -85,25 +85,26 @@ func PrintDiff(d diff.Diff) {
 	total := len(wfc.Added) + len(wfc.Removed) + len(wfc.Modified)
 	if total > 0 {
 		fmt.Printf("WORD-FORM CHANGES (%d):\n\n", total)
-		for _, mc := range wfc.Added {
-			fmt.Printf("  Word form: %s (%s)\n", mc.ButtonSetName, formLabel(mc.Key.FormIndex))
-			fmt.Println(formatButton("+", mc.After, "speaks"))
-		}
-		for _, mc := range wfc.Removed {
-			fmt.Printf("  Word form: %s (%s)\n", mc.ButtonSetName, formLabel(mc.Key.FormIndex))
-			fmt.Println(formatButton("-", mc.Before, "spoke"))
-		}
-		for _, mc := range wfc.Modified {
-			fmt.Printf("  Word form: %s (%s)\n", mc.ButtonSetName, formLabel(mc.Key.FormIndex))
-			fmt.Printf("    ~ (modified)\n")
-			if mc.Before.Pronunciation != mc.After.Pronunciation {
-				fmt.Printf("        pronunciation: %s → %s\n",
-					quotedOrNone(mc.Before.Pronunciation),
-					quotedOrNone(mc.After.Pronunciation))
+		printModifierGroup(wfc.Added, "+", "speaks", func(mc diff.ModifierChange) diff.Button { return mc.After })
+		printModifierGroup(wfc.Removed, "-", "spoke", func(mc diff.ModifierChange) diff.Button { return mc.Before })
+		for i := 0; i < len(wfc.Modified); {
+			setName := wfc.Modified[i].ButtonSetName
+			j := i
+			for j < len(wfc.Modified) && wfc.Modified[j].ButtonSetName == setName {
+				j++
 			}
-			// visible / action diffs follow the same pattern as the page-button block
+			fmt.Printf("  Word form: %s%s\n", setName, pagesSuffix(wfc.Modified[i].Pages))
+			for _, mc := range wfc.Modified[i:j] {
+				fmt.Printf("    ~ %q (%s, modified)\n", mc.After.Label, formLabel(mc.Key.FormIndex))
+				if mc.Before.Pronunciation != mc.After.Pronunciation {
+					fmt.Printf("        pronunciation: %s → %s\n",
+						quotedOrNone(mc.Before.Pronunciation),
+						quotedOrNone(mc.After.Pronunciation))
+				}
+			}
+			fmt.Println()
+			i = j
 		}
-		fmt.Println()
 	}
 
 	totalAdded, totalRemoved, totalModified := 0, 0, 0
@@ -117,6 +118,50 @@ func PrintDiff(d diff.Diff) {
 		len(d.AddedPages), len(d.RemovedPages), len(d.ChangedPages))
 	fmt.Printf("         %d button(s) added, %d button(s) removed, %d button(s) with changed properties.\n\n",
 		totalAdded, totalRemoved, totalModified)
+}
+
+// printModifierGroup prints Added or Removed modifier changes grouped by button set name.
+// btnFn extracts the relevant Button from each change (mc.After for added, mc.Before for removed).
+func printModifierGroup(changes []diff.ModifierChange, prefix, verb string, btnFn func(diff.ModifierChange) diff.Button) {
+	for i := 0; i < len(changes); {
+		setName := changes[i].ButtonSetName
+		j := i
+		for j < len(changes) && changes[j].ButtonSetName == setName {
+			j++
+		}
+		fmt.Printf("  Word form: %s%s\n", setName, pagesSuffix(changes[i].Pages))
+		for _, mc := range changes[i:j] {
+			b := btnFn(mc)
+			line := fmt.Sprintf("    %s %q (%s)", prefix, b.Label, formLabel(mc.Key.FormIndex))
+			if b.Message != "" && b.Message != b.Label {
+				line += fmt.Sprintf("  →  %s: %q", verb, b.Message)
+			}
+			if b.Pronunciation != "" {
+				line += fmt.Sprintf("  →  pronounced: %q", b.Pronunciation)
+			}
+			if !b.Visible {
+				line += " [hidden]"
+			}
+			fmt.Println(line)
+		}
+		fmt.Println()
+		i = j
+	}
+}
+
+func pagesSuffix(pages []string) string {
+	if len(pages) == 0 {
+		return ""
+	}
+	const max = 3
+	label := "page"
+	if len(pages) > 1 {
+		label = "pages"
+	}
+	if len(pages) <= max {
+		return "  (" + label + ": " + strings.Join(pages, ", ") + ")"
+	}
+	return fmt.Sprintf("  (%s: %s, +%d more)", label, strings.Join(pages[:max], ", "), len(pages)-max)
 }
 
 func formLabel(index int) string {

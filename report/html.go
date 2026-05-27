@@ -44,8 +44,9 @@ type HTMLStats struct {
 
 // HTMLSection groups a titled set of page cards (e.g. "Removed pages").
 type HTMLSection struct {
-	Title string
-	Cards []HTMLCard
+	Title       string
+	Description string // optional explanatory text rendered below the section title
+	Cards       []HTMLCard
 }
 
 // HTMLCard represents one page-level card in the report.
@@ -158,15 +159,21 @@ func NewHTMLData(d diff.Diff) HTMLData {
 
 	wfc := d.WordFormChanges
 	if len(wfc.Added)+len(wfc.Removed)+len(wfc.Modified) > 0 {
-		sec := HTMLSection{Title: "Word-form changes"}
+		sec := HTMLSection{
+			Title:       "Word-form changes",
+			Description: "A word-form button set groups all inflected forms of a word (base, plural, past tense, etc.) behind a single button on a page. Removing or modifying that button may appear here as multiple form entries — one per inflected form in the set.",
+		}
 		// Group all changes by ButtonSetName. The slices are already sorted
 		// by (ButtonSetName, FormIndex), so we can walk them linearly.
 		cards := map[string]*HTMLCard{}
 		order := []string{} // preserve insertion order for deterministic output
 
-		addRow := func(name string, row HTMLRow) {
+		addRow := func(name string, row HTMLRow, pages []string) {
 			if _, exists := cards[name]; !exists {
 				cards[name] = &HTMLCard{Name: name, Kind: "changed"}
+				if len(pages) > 0 {
+					cards[name].PathSingle = pagesLabel(pages)
+				}
 				order = append(order, name)
 			}
 			cards[name].Rows = append(cards[name].Rows, row)
@@ -174,21 +181,21 @@ func NewHTMLData(d diff.Diff) HTMLData {
 
 		for _, mc := range wfc.Added {
 			btn := mc.After
-			btn.Label = formLabel(mc.Key.FormIndex) // repurpose Label as the form identifier
-			addRow(mc.ButtonSetName, addedRow(btn))
+			btn.Label = fmt.Sprintf("%s (%s)", mc.After.Label, formLabel(mc.Key.FormIndex))
+			addRow(mc.ButtonSetName, addedRow(btn), mc.Pages)
 		}
 		for _, mc := range wfc.Removed {
 			btn := mc.Before
-			btn.Label = formLabel(mc.Key.FormIndex)
-			addRow(mc.ButtonSetName, removedRow(btn))
+			btn.Label = fmt.Sprintf("%s (%s)", mc.Before.Label, formLabel(mc.Key.FormIndex))
+			addRow(mc.ButtonSetName, removedRow(btn), mc.Pages)
 		}
 		for _, mc := range wfc.Modified {
 			row := modifiedRow(diff.ButtonChange{
-				Key:    diff.ButtonKey{Label: formLabel(mc.Key.FormIndex)},
+				Key:    diff.ButtonKey{Label: fmt.Sprintf("%s (%s)", mc.After.Label, formLabel(mc.Key.FormIndex))},
 				Before: mc.Before,
 				After:  mc.After,
 			})
-			addRow(mc.ButtonSetName, row)
+			addRow(mc.ButtonSetName, row, mc.Pages)
 		}
 
 		for _, name := range order {
@@ -248,6 +255,14 @@ func modifiedRow(bc diff.ButtonChange) HTMLRow {
 		VisibleHTML: diffField(visStr2(bc.Before.Visible), visStr2(bc.After.Visible)),
 		ActionsHTML: actionsDiffHTML(bc.Before.Actions, bc.After.Actions),
 	}
+}
+
+func pagesLabel(pages []string) string {
+	const max = 3
+	if len(pages) <= max {
+		return strings.Join(pages, ", ")
+	}
+	return fmt.Sprintf("%s, +%d more", strings.Join(pages[:max], ", "), len(pages)-max)
 }
 
 // ── HTML cell helpers ─────────────────────────────────────────────────────────

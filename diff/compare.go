@@ -142,14 +142,14 @@ func computeModifierDiff(old, new ModifierMap) ModifierSetDiff {
 
 	for key, newEntry := range new {
 		if oldEntry, ok := old[key]; !ok {
-			added = append(added, ModifierChange{Key: key, ButtonSetName: newEntry.Name, After: newEntry.Button})
+			added = append(added, ModifierChange{Key: key, ButtonSetName: newEntry.Name, Pages: newEntry.Pages, After: newEntry.Button})
 		} else if oldEntry.Button.Fingerprint() != newEntry.Button.Fingerprint() {
-			modified = append(modified, ModifierChange{Key: key, ButtonSetName: oldEntry.Name, Before: oldEntry.Button, After: newEntry.Button})
+			modified = append(modified, ModifierChange{Key: key, ButtonSetName: oldEntry.Name, Pages: newEntry.Pages, Before: oldEntry.Button, After: newEntry.Button})
 		}
 	}
 	for key, oldEntry := range old {
 		if _, ok := new[key]; !ok {
-			removed = append(removed, ModifierChange{Key: key, ButtonSetName: oldEntry.Name, Before: oldEntry.Button})
+			removed = append(removed, ModifierChange{Key: key, ButtonSetName: oldEntry.Name, Pages: oldEntry.Pages, Before: oldEntry.Button})
 		}
 	}
 

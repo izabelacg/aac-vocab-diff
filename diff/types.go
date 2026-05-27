@@ -161,7 +161,8 @@ type ModifierKey struct {
 // The Name comes from resources.name and is only used for display; identity
 // is determined solely by the ModifierKey (RID + FormIndex).
 type ModifierEntry struct {
-	Name   string // resources.name — display label, e.g. "good"
+	Name   string   // resources.name — display label, e.g. "good"
+	Pages  []string // page(s) this button set is placed on (sorted); may be empty
 	Button Button
 }
 
@@ -170,8 +171,9 @@ type ModifierEntry struct {
 // at diff time; it is kept here so reporters don't need access to the source maps.
 type ModifierChange struct {
 	Key           ModifierKey
-	ButtonSetName string // display name, e.g. "good"
-	Before        Button // reuse Button — same five diffable fields
+	ButtonSetName string   // display name, e.g. "good"
+	Pages         []string // page(s) the button set appears on (from old file for removed, new for added/modified)
+	Before        Button   // reuse Button — same five diffable fields
 	After         Button
 }
 
