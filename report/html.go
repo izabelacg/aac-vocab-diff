@@ -258,7 +258,7 @@ func modifiedRow(bc diff.ButtonChange) HTMLRow {
 }
 
 func pagesLabel(pages []string) string {
-	const max = 3
+	const max = 10
 	if len(pages) <= max {
 		return strings.Join(pages, ", ")
 	}

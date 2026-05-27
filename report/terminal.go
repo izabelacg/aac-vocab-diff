@@ -153,7 +153,7 @@ func pagesSuffix(pages []string) string {
 	if len(pages) == 0 {
 		return ""
 	}
-	const max = 3
+	const max = 10
 	label := "page"
 	if len(pages) > 1 {
 		label = "pages"
