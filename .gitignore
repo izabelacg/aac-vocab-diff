@@ -24,6 +24,9 @@ bin/
 # macOS metadata
 .DS_Store
 
+# Personal Claude Code config (symlinked from ai-context-kit)
+CLAUDE.md
+
 # CI secrets — never commit real credentials
 ci/secrets.yaml
 
