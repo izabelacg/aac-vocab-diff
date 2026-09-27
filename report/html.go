@@ -53,6 +53,16 @@ type HTMLSection struct {
 	Cards       []HTMLCard
 }
 
+// RowCount is the number of rows across all cards, e.g. the word-form
+// buttons hidden when a collapsible section is closed.
+func (s HTMLSection) RowCount() int {
+	n := 0
+	for _, c := range s.Cards {
+		n += len(c.Rows)
+	}
+	return n
+}
+
 // HTMLCard represents one page-level card in the report.
 type HTMLCard struct {
 	Name       string

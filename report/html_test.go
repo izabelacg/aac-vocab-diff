@@ -638,3 +638,34 @@ func TestNewHTMLData_WholePageLabelTiesOrderedByMessage(t *testing.T) {
 		}
 	}
 }
+
+// The collapsed note must convey how much is hidden: cards (words) alone can
+// understate it by orders of magnitude, so it also counts the form rows.
+func TestWriteHTML_HiddenNoteCountsWordsAndButtons(t *testing.T) {
+	change := func(rid, name string, form int) diff.ModifierChange {
+		return diff.ModifierChange{
+			Key:           diff.ModifierKey{ButtonSetRID: rid, FormIndex: form},
+			ButtonSetName: name,
+			After:         diff.Button{Label: name},
+		}
+	}
+	tests := []struct {
+		name  string
+		added []diff.ModifierChange
+		want  string
+	}{
+		{"plural", []diff.ModifierChange{change("rid-go", "go", 0), change("rid-go", "go", 6), change("rid-eat", "eat", 0)},
+			"(2 words, 3 word-form buttons)"},
+		{"singular", []diff.ModifierChange{change("rid-go", "go", 0)},
+			"(1 word, 1 word-form button)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var sb strings.Builder
+			_ = report.WriteHTML(&sb, report.NewHTMLData(diff.Diff{WordFormChanges: diff.ModifierSetDiff{Added: tt.added}}))
+			if !strings.Contains(sb.String(), "Hidden from this printout "+tt.want) {
+				t.Errorf("hidden note missing %q", tt.want)
+			}
+		})
+	}
+}

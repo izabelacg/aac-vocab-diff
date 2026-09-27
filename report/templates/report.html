@@ -121,7 +121,7 @@ details:not([open]) .hidden-note { display: inline; }
                 <h2 class="section-title">{{.Title}}</h2>
                 <span class="toggle no-print when-closed">Show</span>
                 <span class="toggle no-print when-open">Hide</span>
-                <span class="hidden-note">Hidden from this printout ({{len .Cards}} word{{ if ne (len .Cards) 1 }}s{{ end }}).</span>
+                <span class="hidden-note">Hidden from this printout ({{len .Cards}} word{{ if ne (len .Cards) 1 }}s{{ end }}, {{.RowCount}} word-form button{{ if ne .RowCount 1 }}s{{ end }}).</span>
             </summary>
             {{ template "section-body" . }}
         </details>

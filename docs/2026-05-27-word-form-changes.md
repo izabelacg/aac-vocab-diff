@@ -158,7 +158,7 @@ The identity key is `(rid, form_index)` — **not the label** — so if "going" 
 In the HTML report, word-form changes have their own section, **collapsed by default** so it stays out of printouts unless the reader expands it. Changes are grouped into one card **per word name** (sketch; page names and values are illustrative):
 
 ```
-WORD-FORM CHANGES   Show   Hidden from this printout (17 words).
+WORD-FORM CHANGES   Show   Hidden from this printout (17 words, 310 word-form buttons).
 
 ┌─ go ──────────────────────────────────────────────────────────────┐
 │  Core → Actions                          ← pages the sets are on   │
