@@ -63,6 +63,14 @@ p.section-description { font-size: 12px; color: #777; margin: -4px 0 10px; }
              border-radius: 6px; padding: 5px 12px; font-size: 13px;
              font-weight: 500; cursor: pointer; }
 .print-btn:hover { background: #f0f7ff; }
+details.collapsible > summary { display: flex; align-items: baseline; gap: 8px;
+                                cursor: pointer; list-style: none; }
+details.collapsible > summary::-webkit-details-marker { display: none; }
+.toggle { font-size: 12px; color: #0969da; }
+.hidden-note { display: none; font-size: 12px; color: #777; font-style: italic; }
+details:not([open]) .when-open,
+details[open] .when-closed { display: none; }
+details:not([open]) .hidden-note { display: inline; }
 @media print { .no-print { display: none !important; } }
         </style>
     </head>
@@ -107,8 +115,20 @@ p.section-description { font-size: 12px; color: #777; margin: -4px 0 10px; }
             </div>
         </div>
         {{ range .Sections }}
+        {{ if .Collapsible }}
+        <details class="collapsible">
+            <summary>
+                <h2 class="section-title">{{.Title}}</h2>
+                <span class="toggle no-print when-closed">Show</span>
+                <span class="toggle no-print when-open">Hide</span>
+                <span class="hidden-note">Hidden from this printout ({{len .Cards}} word{{ if ne (len .Cards) 1 }}s{{ end }}).</span>
+            </summary>
+            {{ template "section-body" . }}
+        </details>
+        {{ else }}
         <h2 class="section-title">{{.Title}}</h2>
         {{ template "section-body" . }}
+        {{ end }}
         {{ end }}
         <p style="margin-top:32px;
                   font-size:12px;

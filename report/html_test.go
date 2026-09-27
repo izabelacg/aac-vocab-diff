@@ -542,3 +542,68 @@ func TestWriteHTML_WordFormChanges_RendersWordName(t *testing.T) {
 		t.Error("expected pronunciation 'good job kid' in rendered HTML")
 	}
 }
+
+// ── Collapsible sections ──────────────────────────────────────────────────────
+
+func wordFormOnlyDiff() diff.Diff {
+	return diff.Diff{
+		WordFormChanges: diff.ModifierSetDiff{
+			Modified: []diff.ModifierChange{{
+				Key:           diff.ModifierKey{ButtonSetRID: "rid-good", FormIndex: 0},
+				ButtonSetName: "good",
+				Before:        diff.Button{Label: "good"},
+				After:         diff.Button{Label: "good", Pronunciation: "good job kid"},
+			}},
+		},
+	}
+}
+
+func TestNewHTMLData_WordFormChanges_SectionIsCollapsible(t *testing.T) {
+	sec, ok := findWordFormSection(report.NewHTMLData(wordFormOnlyDiff()).Sections)
+	if !ok {
+		t.Fatal("expected a word-form section")
+	}
+	if !sec.Collapsible {
+		t.Error("word-form section should be collapsible")
+	}
+}
+
+func TestNewHTMLData_PageSections_NotCollapsible(t *testing.T) {
+	d := diff.Diff{
+		AddedPages:   []string{"Sports"},
+		RemovedPages: []string{"Old Food"},
+		ChangedPages: []diff.PageChange{{PageName: "Home"}},
+	}
+	for _, sec := range report.NewHTMLData(d).Sections {
+		if sec.Collapsible {
+			t.Errorf("section %q should not be collapsible", sec.Title)
+		}
+	}
+}
+
+func TestWriteHTML_CollapsibleSection_ClosedByDefaultWithHiddenNote(t *testing.T) {
+	var sb strings.Builder
+	_ = report.WriteHTML(&sb, report.NewHTMLData(wordFormOnlyDiff()))
+	out := sb.String()
+	if !strings.Contains(out, `<details class="collapsible">`) {
+		t.Error("expected collapsible section rendered as a closed <details>")
+	}
+	if strings.Contains(out, `<details class="collapsible" open`) {
+		t.Error("collapsible section should be closed by default")
+	}
+	if !strings.Contains(out, "Hidden from this printout") {
+		t.Error("expected hidden-section note in collapsible summary")
+	}
+	// The content stays in the file so the user can expand it.
+	if !strings.Contains(out, "good job kid") {
+		t.Error("expected collapsed section content to still be rendered")
+	}
+}
+
+func TestWriteHTML_NoCollapsibleSections_NoDetails(t *testing.T) {
+	var sb strings.Builder
+	_ = report.WriteHTML(&sb, report.NewHTMLData(diff.Diff{AddedPages: []string{"Sports"}}))
+	if strings.Contains(sb.String(), "<details") {
+		t.Error("expected no <details> element when no section is collapsible")
+	}
+}

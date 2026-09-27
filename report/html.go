@@ -46,6 +46,9 @@ type HTMLStats struct {
 type HTMLSection struct {
 	Title       string
 	Description string // optional explanatory text rendered below the section title
+	// Collapsible renders the section as a closed <details> so it stays out of
+	// printouts unless the user expands it.
+	Collapsible bool
 	Cards       []HTMLCard
 }
 
@@ -162,6 +165,7 @@ func NewHTMLData(d diff.Diff) HTMLData {
 		sec := HTMLSection{
 			Title:       "Word-form changes",
 			Description: "A word-form button set groups all inflected forms of a word (base, plural, past tense, etc.) behind a single button on a page. Removing or modifying that button may appear here as multiple form entries — one per inflected form in the set.",
+			Collapsible: true,
 		}
 		// Group all changes by ButtonSetName. The slices are already sorted
 		// by (ButtonSetName, FormIndex), so we can walk them linearly.
