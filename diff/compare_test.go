@@ -355,3 +355,66 @@ func TestComputeDiff_NilOldButtonMapUsesEmptySets(t *testing.T) {
 		t.Errorf("new-only page should not appear in ChangedPages: %+v", result.ChangedPages)
 	}
 }
+
+// Buttons that tie on Label must still come out in a fixed order; otherwise
+// map iteration order leaks into the report and it changes run to run.
+// Repeating the call makes an accidental pass on random order very unlikely.
+func TestComputeDiff_LabelTiesOrderedByMessageThenFingerprint(t *testing.T) {
+	sameLabel := []diff.Button{
+		{Label: "hi", Message: "e", Visible: true},
+		{Label: "hi", Message: "c", Visible: true},
+		{Label: "hi", Message: "a", Visible: true},
+		{Label: "hi", Message: "d", Visible: true},
+		{Label: "hi", Message: "b", Visible: true},
+	}
+	// Same label and message: grouped under one key, so only the fingerprint separates them.
+	sameKey := []diff.Button{
+		{Label: "hi", Message: "z", Visible: true},
+		{Label: "hi", Message: "z", Visible: false},
+	}
+	all := append(append([]diff.Button{}, sameLabel...), sameKey...)
+
+	var first []diff.Button
+	for i := range 10 {
+		result := diff.ComputeDiff(
+			diff.ButtonMap{"Home": makeSet()},
+			diff.ButtonMap{"Home": makeSet(all...)},
+			diff.PageSet{"Home": {}}, diff.PageSet{"Home": {}},
+		)
+		added := result.ChangedPages[0].Added
+		var msgs []string
+		for _, b := range added[:5] {
+			msgs = append(msgs, b.Message)
+		}
+		if !reflect.DeepEqual(msgs, []string{"a", "b", "c", "d", "e"}) {
+			t.Fatalf("run %d: Added messages = %v, want [a b c d e]", i, msgs)
+		}
+		if i == 0 {
+			first = added
+		} else if !reflect.DeepEqual(added, first) {
+			t.Fatalf("run %d: Added order differs from run 0:\n got %+v\nwant %+v", i, added, first)
+		}
+	}
+}
+
+func TestComputeDiff_ModifiedLabelTiesOrderedByMessage(t *testing.T) {
+	var oldBtns, newBtns []diff.Button
+	for _, msg := range []string{"e", "c", "a", "d", "b"} {
+		oldBtns = append(oldBtns, diff.Button{Label: "hi", Message: msg, Visible: true})
+		newBtns = append(newBtns, diff.Button{Label: "hi", Message: msg, Visible: false})
+	}
+	for i := range 10 {
+		result := diff.ComputeDiff(
+			diff.ButtonMap{"Home": makeSet(oldBtns...)},
+			diff.ButtonMap{"Home": makeSet(newBtns...)},
+			diff.PageSet{"Home": {}}, diff.PageSet{"Home": {}},
+		)
+		var msgs []string
+		for _, bc := range result.ChangedPages[0].Modified {
+			msgs = append(msgs, bc.Key.Message)
+		}
+		if !reflect.DeepEqual(msgs, []string{"a", "b", "c", "d", "e"}) {
+			t.Fatalf("run %d: Modified messages = %v, want [a b c d e]", i, msgs)
+		}
+	}
+}

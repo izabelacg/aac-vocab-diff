@@ -1,8 +1,31 @@
 package diff
 
 import (
+	"cmp"
+	"slices"
 	"sort"
 )
+
+// CompareButtons orders buttons by label, then message, then fingerprint.
+// The fingerprint is unique within a page's ButtonSet, so the order is total
+// and independent of map iteration order.
+func CompareButtons(a, b Button) int {
+	return cmp.Or(
+		cmp.Compare(a.Label, b.Label),
+		cmp.Compare(a.Message, b.Message),
+		cmp.Compare(a.Fingerprint(), b.Fingerprint()),
+	)
+}
+
+// compareModifierChanges orders by word, then form, then button-set RID;
+// the key is unique, so ties between same-named sets are broken deterministically.
+func compareModifierChanges(a, b ModifierChange) int {
+	return cmp.Or(
+		cmp.Compare(a.ButtonSetName, b.ButtonSetName),
+		cmp.Compare(a.Key.FormIndex, b.Key.FormIndex),
+		cmp.Compare(a.Key.ButtonSetRID, b.Key.ButtonSetRID),
+	)
+}
 
 func ComputeDiff(oldBtns, newBtns ButtonMap, oldPages, newPages PageSet) Diff {
 	// 1. Find added/removed pages using map existence checks (Go's set-difference).
@@ -116,9 +139,11 @@ func ComputeDiff(oldBtns, newBtns ButtonMap, oldPages, newPages PageSet) Diff {
 		}
 
 		// Sort for deterministic output regardless of map iteration order.
-		sort.Slice(pureAdded, func(i, j int) bool { return pureAdded[i].Label < pureAdded[j].Label })
-		sort.Slice(pureRemoved, func(i, j int) bool { return pureRemoved[i].Label < pureRemoved[j].Label })
-		sort.Slice(modified, func(i, j int) bool { return modified[i].Key.Label < modified[j].Key.Label })
+		slices.SortFunc(pureAdded, CompareButtons)
+		slices.SortFunc(pureRemoved, CompareButtons)
+		slices.SortFunc(modified, func(a, b ButtonChange) int {
+			return cmp.Or(cmp.Compare(a.Key.Label, b.Key.Label), cmp.Compare(a.Key.Message, b.Key.Message))
+		})
 
 		changedPages = append(changedPages, PageChange{
 			PageName: page,
@@ -153,24 +178,9 @@ func computeModifierDiff(old, new ModifierMap) ModifierSetDiff {
 		}
 	}
 
-	sort.Slice(added, func(i, j int) bool {
-		if added[i].ButtonSetName != added[j].ButtonSetName {
-			return added[i].ButtonSetName < added[j].ButtonSetName
-		}
-		return added[i].Key.FormIndex < added[j].Key.FormIndex
-	})
-	sort.Slice(removed, func(i, j int) bool {
-		if removed[i].ButtonSetName != removed[j].ButtonSetName {
-			return removed[i].ButtonSetName < removed[j].ButtonSetName
-		}
-		return removed[i].Key.FormIndex < removed[j].Key.FormIndex
-	})
-	sort.Slice(modified, func(i, j int) bool {
-		if modified[i].ButtonSetName != modified[j].ButtonSetName {
-			return modified[i].ButtonSetName < modified[j].ButtonSetName
-		}
-		return modified[i].Key.FormIndex < modified[j].Key.FormIndex
-	})
+	slices.SortFunc(added, compareModifierChanges)
+	slices.SortFunc(removed, compareModifierChanges)
+	slices.SortFunc(modified, compareModifierChanges)
 
 	return ModifierSetDiff{Added: added, Removed: removed, Modified: modified}
 }

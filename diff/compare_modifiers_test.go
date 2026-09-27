@@ -1,6 +1,7 @@
 package diff_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/izabelacg/aac-vocab-diff/diff"
@@ -133,5 +134,41 @@ func TestCompareFiles_WordFormChanges_SameFileNoChanges(t *testing.T) {
 	wfc := d.WordFormChanges
 	if len(wfc.Added)+len(wfc.Removed)+len(wfc.Modified) != 0 {
 		t.Errorf("expected zero word-form changes for identical files, got %+v", wfc)
+	}
+}
+
+// Different button sets can share a display name and form index; the RID
+// (the map key) must break the tie so output order doesn't follow map order.
+func TestComputeModifierDiff_NameAndFormTiesOrderedByRID(t *testing.T) {
+	rids := []string{"rid-e", "rid-c", "rid-a", "rid-d", "rid-b"}
+	want := []string{"rid-a", "rid-b", "rid-c", "rid-d", "rid-e"}
+
+	oldOnly, newOnly := diff.ModifierMap{}, diff.ModifierMap{}
+	oldBoth, newBoth := diff.ModifierMap{}, diff.ModifierMap{}
+	for _, rid := range rids {
+		oldOnly[diff.ModifierKey{ButtonSetRID: "old-" + rid, FormIndex: 3}] = entry("good", diff.Button{Label: "good"})
+		newOnly[diff.ModifierKey{ButtonSetRID: "new-" + rid, FormIndex: 3}] = entry("good", diff.Button{Label: "good"})
+		oldBoth[diff.ModifierKey{ButtonSetRID: rid, FormIndex: 3}] = entry("good", diff.Button{Label: "good"})
+		newBoth[diff.ModifierKey{ButtonSetRID: rid, FormIndex: 3}] = entry("good", diff.Button{Label: "good", Pronunciation: "gud"})
+	}
+
+	ridsOf := func(changes []diff.ModifierChange, prefix string) []string {
+		var out []string
+		for _, mc := range changes {
+			out = append(out, mc.Key.ButtonSetRID[len(prefix):])
+		}
+		return out
+	}
+	for i := range 10 {
+		changed := diff.ComputeModifierDiff(oldOnly, newOnly)
+		if got := ridsOf(changed.Added, "new-"); !slices.Equal(got, want) {
+			t.Fatalf("run %d: Added RIDs = %v, want %v", i, got, want)
+		}
+		if got := ridsOf(changed.Removed, "old-"); !slices.Equal(got, want) {
+			t.Fatalf("run %d: Removed RIDs = %v, want %v", i, got, want)
+		}
+		if got := ridsOf(diff.ComputeModifierDiff(oldBoth, newBoth).Modified, ""); !slices.Equal(got, want) {
+			t.Fatalf("run %d: Modified RIDs = %v, want %v", i, got, want)
+		}
 	}
 }
