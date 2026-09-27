@@ -108,6 +108,26 @@ p.section-description { font-size: 12px; color: #777; margin: -4px 0 10px; }
         </div>
         {{ range .Sections }}
         <h2 class="section-title">{{.Title}}</h2>
+        {{ template "section-body" . }}
+        {{ end }}
+        <p style="margin-top:32px;
+                  font-size:12px;
+                  color:#888;
+                  text-align:center">
+            Something missing or wrong?
+            <a href="https://docs.google.com/forms/d/11YlQYQ_YzGSYQaFJxZFT8TbPX6vj2AvW1ow5ai4CDOU/viewform"
+               target="_blank"
+               rel="noopener"
+               style="color:#0969da">Send feedback</a>
+            &middot;
+            <a href="https://github.com/izabelacg/aac-vocab-diff"
+               target="_blank"
+               rel="noopener"
+               style="color:#0969da">Source on GitHub</a>
+        </p>
+    </body>
+</html>
+{{ define "section-body" }}
         {{ if .Description }}
         <p class="section-description">{{.Description}}</p>
         {{ end }}
@@ -154,21 +174,4 @@ p.section-description { font-size: 12px; color: #777; margin: -4px 0 10px; }
             </table>
         </div>
         {{ end }}
-        {{ end }}
-        <p style="margin-top:32px;
-                  font-size:12px;
-                  color:#888;
-                  text-align:center">
-            Something missing or wrong?
-            <a href="https://docs.google.com/forms/d/11YlQYQ_YzGSYQaFJxZFT8TbPX6vj2AvW1ow5ai4CDOU/viewform"
-               target="_blank"
-               rel="noopener"
-               style="color:#0969da">Send feedback</a>
-            &middot;
-            <a href="https://github.com/izabelacg/aac-vocab-diff"
-               target="_blank"
-               rel="noopener"
-               style="color:#0969da">Source on GitHub</a>
-        </p>
-    </body>
-</html>
+{{ end }}
