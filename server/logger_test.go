@@ -2,6 +2,8 @@ package server
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -67,4 +69,19 @@ func (b *syncBuffer) String() string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.buf.String()
+}
+
+// The analytics log lives on a shared host; other local users must not read it.
+func TestNewEventLogger_CreatesOwnerOnlyFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "analytics.log")
+	if _, err := newEventLogger(path); err != nil {
+		t.Fatalf("newEventLogger: %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Errorf("log file mode = %v, want -rw-------", got)
+	}
 }
