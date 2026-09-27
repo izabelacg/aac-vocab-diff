@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -360,7 +361,7 @@ func sortedButtons(bs diff.ButtonSet) []diff.Button {
 	for _, btn := range bs {
 		btns = append(btns, btn)
 	}
-	sort.Slice(btns, func(i, j int) bool { return btns[i].Label < btns[j].Label })
+	slices.SortFunc(btns, diff.CompareButtons)
 	return btns
 }
 

@@ -1,6 +1,7 @@
 package report_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -605,5 +606,35 @@ func TestWriteHTML_NoCollapsibleSections_NoDetails(t *testing.T) {
 	_ = report.WriteHTML(&sb, report.NewHTMLData(diff.Diff{AddedPages: []string{"Sports"}}))
 	if strings.Contains(sb.String(), "<details") {
 		t.Error("expected no <details> element when no section is collapsible")
+	}
+}
+
+// ── Deterministic row order ───────────────────────────────────────────────────
+
+// Whole-page cards read buttons from a map; same-label buttons must still come
+// out in a fixed order. Repeating makes an accidental pass on random order unlikely.
+func TestNewHTMLData_WholePageLabelTiesOrderedByMessage(t *testing.T) {
+	set := diff.ButtonSet{}
+	for _, msg := range []string{"e", "c", "a", "d", "b"} {
+		btn := diff.Button{Label: "hi", Message: msg, Visible: true}
+		set[btn.Fingerprint()] = btn
+	}
+	d := diff.Diff{
+		AddedPages:         []string{"Sports"},
+		RemovedPages:       []string{"Food"},
+		AddedPageButtons:   diff.ButtonMap{"Sports": set},
+		RemovedPageButtons: diff.ButtonMap{"Food": set},
+	}
+	want := []string{"a", "b", "c", "d", "e"}
+	for i := range 10 {
+		for _, sec := range report.NewHTMLData(d).Sections {
+			var got []string
+			for _, row := range sec.Cards[0].Rows {
+				got = append(got, string(row.MessageHTML))
+			}
+			if !slices.Equal(got, want) {
+				t.Fatalf("run %d, %s: row messages = %v, want %v", i, sec.Title, got, want)
+			}
+		}
 	}
 }
