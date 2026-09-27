@@ -379,8 +379,8 @@ func actionsDiffHTML(oldActs, newActs []string) template.HTML {
 		if _, removed := newSet[a]; !removed {
 			cls = " removed"
 		}
-		sb.WriteString(fmt.Sprintf("<span class='action-pill%s'>%s</span>",
-			cls, template.HTMLEscapeString(a)))
+		fmt.Fprintf(&sb, "<span class='action-pill%s'>%s</span>",
+			cls, template.HTMLEscapeString(a))
 	}
 	// Newly added actions (not in old).
 	added := make([]string, 0)
@@ -391,8 +391,8 @@ func actionsDiffHTML(oldActs, newActs []string) template.HTML {
 	}
 	sort.Strings(added)
 	for _, a := range added {
-		sb.WriteString(fmt.Sprintf("<span class='action-pill added'>%s</span>",
-			template.HTMLEscapeString(a)))
+		fmt.Fprintf(&sb, "<span class='action-pill added'>%s</span>",
+			template.HTMLEscapeString(a))
 	}
 	if sb.Len() == 0 {
 		return "<span class='dim'>—</span>"
